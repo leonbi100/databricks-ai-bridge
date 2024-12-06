@@ -38,27 +38,35 @@ class VectorSearchRetrieverTool():
         search_kwargs (Optional[Dict]): Keyword arguments to pass to the search function.
     """
     def __new__(
-            self,
-            tool_name = str,
-            tool_description = str,
-            index_name: str,
-            endpoint: Optional[str] = None,
-            embedding: Optional[Embeddings] = None,
-            text_column: Optional[str] = None,
-            columns: Optional[List[str]] = None,
-            search_type: Optional[dict] = None,
+        cls,
+        tool_name: str,
+        tool_description: str,
+        index_name: str,
+        endpoint: Optional[str] = None,
+        embedding: Optional[Embeddings] = None,
+        text_column: Optional[str] = None,
+        columns: Optional[List[str]] = None,
+        search_type: Optional[str] = None,
+        search_kwargs: Optional[dict] = None,
     ):
-        vector_store = DatabricksVectorSearch(
-            endpoint=endpoint,
-            index_name=index_name,
-            embedding = embedding,
-            text_column = text_column,
-            columns = columns
-        )
-        retriever = vector_store.as_retriever(
-            search_type=search_type,
-            search_kwargs=search_kwargs
-        )
+        vector_store_kwargs = {"index_name": index_name}
+        if endpoint is not None:
+            vector_store_kwargs["endpoint"] = endpoint
+        if embedding is not None:
+            vector_store_kwargs["embedding"] = embedding
+        if text_column is not None:
+            vector_store_kwargs["text_column"] = text_column
+        if columns is not None:
+            vector_store_kwargs["columns"] = columns
+        vector_store = DatabricksVectorSearch(**vector_store_kwargs)
+
+        retriever_kwargs = {}
+        if search_type is not None:
+            retriever_kwargs["search_type"] = search_type
+        if search_kwargs is not None:
+            retriever_kwargs["search_kwargs"] = search_kwargs
+
+        retriever = vector_store.as_retriever(**retriever_kwargs)
         return create_retriever_tool(
             retriever,
             tool_name,
