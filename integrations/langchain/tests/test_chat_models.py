@@ -1,6 +1,8 @@
 """Test chat model integration."""
 
 import json
+from typing import Generator
+from unittest import mock
 
 import mlflow  # type: ignore # noqa: F401
 import pytest
@@ -21,7 +23,8 @@ from langchain_core.messages.tool import ToolCallChunk
 from langchain_core.runnables import RunnableMap
 from pydantic import BaseModel, Field
 
-from langchain_databricks.chat_models import (
+from databricks_langchain.chat_models import (
+    ChatDatabricks,
     _convert_dict_to_message,
     _convert_dict_to_message_chunk,
     _convert_message_to_dict,
@@ -110,9 +113,7 @@ class GetPopulation(BaseModel):
 
 def test_chat_model_bind_tools(llm: ChatDatabricks) -> None:
     llm_with_tools = llm.bind_tools([GetWeather, GetPopulation])
-    response = llm_with_tools.invoke(
-        "Which city is hotter today and which is bigger: LA or NY?"
-    )
+    response = llm_with_tools.invoke("Which city is hotter today and which is bigger: LA or NY?")
     assert isinstance(response, AIMessage)
 
 
@@ -126,13 +127,13 @@ def test_chat_model_bind_tools(llm: ChatDatabricks) -> None:
         ("any", "required"),
         ("GetWeather", {"type": "function", "function": {"name": "GetWeather"}}),
         (
-                {"type": "function", "function": {"name": "GetWeather"}},
-                {"type": "function", "function": {"name": "GetWeather"}},
+            {"type": "function", "function": {"name": "GetWeather"}},
+            {"type": "function", "function": {"name": "GetWeather"}},
         ),
     ],
 )
 def test_chat_model_bind_tools_with_choices(
-        llm: ChatDatabricks, tool_choice, expected_output
+    llm: ChatDatabricks, tool_choice, expected_output
 ) -> None:
     llm_with_tool = llm.bind_tools([GetWeather], tool_choice=tool_choice)
     assert llm_with_tool.kwargs["tool_choice"] == expected_output
@@ -309,9 +310,7 @@ def test_convert_tool_message_chunk() -> None:
         "id": "some_id",
     }
     result = _convert_dict_to_message_chunk(delta, "default_role")
-    expected_output = ToolMessageChunk(
-        content="foo", id="some_id", tool_call_id="tool_call_id"
-    )
+    expected_output = ToolMessageChunk(content="foo", id="some_id", tool_call_id="tool_call_id")
     assert result == expected_output
 
     # convert back
