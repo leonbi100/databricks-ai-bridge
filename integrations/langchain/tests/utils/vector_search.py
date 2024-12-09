@@ -7,8 +7,6 @@ import pytest
 from databricks.vector_search.client import VectorSearchIndex  # type: ignore
 from langchain_core.embeddings import Embeddings
 
-from databricks_langchain import DatabricksVectorSearch
-
 INPUT_TEXTS = ["foo", "bar", "baz"]
 DEFAULT_VECTOR_DIMENSION = 4
 
