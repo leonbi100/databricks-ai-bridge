@@ -12,10 +12,10 @@ def init_vector_search_tool(
         index_name: str, columns: Optional[List[str]] = None
 ) -> VectorSearchRetrieverTool:
     kwargs: Dict[str, Any] = {
-        "tool_name": "test_tool",
-        "tool_description": "Test tool for vector search",
         "index_name": index_name,
         "columns": columns,
+        "tool_name": "test_tool",
+        "tool_description": "Test tool for vector search",
     }
     if index_name != DELTA_SYNC_INDEX:
         kwargs.update(
