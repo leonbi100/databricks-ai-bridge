@@ -148,3 +148,18 @@ def mock_vs_client() -> Generator:
             return_value=mock_client,
     ):
         yield
+
+@pytest.fixture(autouse=True)
+def mock_workspace_client() -> Generator:
+    def _get_table_comment(full_name: str) -> MagicMock:
+        table = MagicMock()
+        table.comment = "Mocked table comment"
+        return table
+
+    mock_client = MagicMock()
+    mock_client.tables.get.side_effect = _get_table_comment
+    with patch(
+            "databricks.sdk.WorkspaceClient",
+            return_value=mock_client,
+    ):
+        yield
