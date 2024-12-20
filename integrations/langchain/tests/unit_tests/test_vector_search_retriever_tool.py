@@ -22,7 +22,6 @@ def init_vector_search_tool(
     tool_description: Optional[str] = None,
     embedding: Optional[Embeddings] = None,
     text_column: Optional[str] = None,
-    endpoint: Optional[str] = None,
 ) -> VectorSearchRetrieverTool:
     kwargs: Dict[str, Any] = {
         "index_name": index_name,
@@ -31,7 +30,6 @@ def init_vector_search_tool(
         "tool_description": tool_description,
         "embedding": embedding,
         "text_column": text_column,
-        "endpoint": endpoint,
     }
     if index_name != DELTA_SYNC_INDEX:
         kwargs.update(
@@ -65,7 +63,6 @@ def test_chat_model_bind_tools(llm: ChatDatabricks, index_name: str) -> None:
 @pytest.mark.parametrize("tool_description", [None, "Test tool for vector search"])
 @pytest.mark.parametrize("embedding", [None, EMBEDDING_MODEL])
 @pytest.mark.parametrize("text_column", [None, "text"])
-@pytest.mark.parametrize("endpoint", [None, "test_endpoint"])
 def test_vector_search_retriever_tool_combinations(
     index_name: str,
     columns: Optional[List[str]],
@@ -73,7 +70,6 @@ def test_vector_search_retriever_tool_combinations(
     tool_description: Optional[str],
     embedding: Optional[Any],
     text_column: Optional[str],
-    endpoint: Optional[str],
 ) -> None:
     if index_name == DELTA_SYNC_INDEX:
         embedding = None
@@ -86,7 +82,6 @@ def test_vector_search_retriever_tool_combinations(
         tool_description=tool_description,
         embedding=embedding,
         text_column=text_column,
-        endpoint=endpoint,
     )
     assert isinstance(vector_search_tool, BaseTool)
     result = vector_search_tool.invoke("Databricks Agent Framework")
