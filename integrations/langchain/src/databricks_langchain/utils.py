@@ -1,14 +1,10 @@
-from typing import Any, List, Union
+import json
+from enum import Enum
+from typing import Any, Dict, List, Optional, Union
 from urllib.parse import urlparse
 
 import numpy as np
-from enum import Enum
-import json
 
-from typing import (
-    Dict,
-    Optional
-)
 
 def get_deployment_client(target_uri: str) -> Any:
     if (target_uri != "databricks") and (urlparse(target_uri).scheme != "databricks"):

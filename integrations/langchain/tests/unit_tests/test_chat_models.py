@@ -1,8 +1,6 @@
 """Test chat model integration."""
 
 import json
-from typing import Generator
-from unittest import mock
 
 import mlflow  # type: ignore # noqa: F401
 import pytest
@@ -29,10 +27,13 @@ from databricks_langchain.chat_models import (
     _convert_dict_to_message_chunk,
     _convert_message_to_dict,
 )
+from tests.utils.chat_models import (  # noqa: F401
+    _MOCK_CHAT_RESPONSE,
+    _MOCK_STREAM_RESPONSE,
+    llm,
+    mock_client,
+)
 
-from databricks_langchain import ChatDatabricks
-
-from tests.utils.chat_models import _MOCK_CHAT_RESPONSE, _MOCK_STREAM_RESPONSE, mock_client, llm
 
 def test_dict(llm: ChatDatabricks) -> None:
     d = llm.dict()

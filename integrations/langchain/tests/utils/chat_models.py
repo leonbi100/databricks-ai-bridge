@@ -1,7 +1,8 @@
-import pytest
-
 from typing import Generator
 from unittest import mock
+
+import pytest
+
 from databricks_langchain import ChatDatabricks
 
 _MOCK_CHAT_RESPONSE = {

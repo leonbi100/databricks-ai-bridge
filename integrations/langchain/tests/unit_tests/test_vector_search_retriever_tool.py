@@ -1,13 +1,19 @@
-from typing import Any, Dict, Generator, List, Optional, Set
+from typing import Any, Dict, List, Optional
 
 import pytest
-from databricks.vector_search.client import VectorSearchIndex  # type: ignore
-
-from databricks_langchain import VectorSearchRetrieverTool, ChatDatabricks
-from tests.utils.vector_search import EMBEDDING_MODEL, DELTA_SYNC_INDEX, ALL_INDEX_NAMES, mock_vs_client, mock_workspace_client, mock_workspace_client
-from tests.utils.chat_models import mock_client, llm
-from langchain_core.tools import BaseTool
 from langchain_core.embeddings import Embeddings
+from langchain_core.tools import BaseTool
+
+from databricks_langchain import ChatDatabricks, VectorSearchRetrieverTool
+from tests.utils.chat_models import llm, mock_client  # noqa: F401
+from tests.utils.vector_search import (  # noqa: F401
+    ALL_INDEX_NAMES,
+    DELTA_SYNC_INDEX,
+    EMBEDDING_MODEL,
+    mock_vs_client,
+    mock_workspace_client,
+)
+
 
 def init_vector_search_tool(
         index_name: str,

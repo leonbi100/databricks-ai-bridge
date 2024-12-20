@@ -1,12 +1,16 @@
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Type
 
-from pydantic import BaseModel, Field, model_validator, PrivateAttr
-
-from databricks_langchain import DatabricksVectorSearch
-from databricks_langchain.utils import IndexDetails
 from langchain_core.embeddings import Embeddings
 from langchain_core.tools import BaseTool
+from pydantic import BaseModel, Field, PrivateAttr, model_validator
 
+from databricks_langchain.utils import IndexDetails
+from databricks_langchain.vectorstores import DatabricksVectorSearch
+
+
+class VectorSearchRetrieverToolInput(BaseModel):
+    query: str = Field(description="The string used to query the index with and identify the most similar "
+                                   "vectors and return the associated documents.")
 
 class VectorSearchRetrieverTool(BaseTool):
     """
@@ -19,27 +23,25 @@ class VectorSearchRetrieverTool(BaseTool):
     num_results: int = Field(10, description="The number of results to return.")
     columns: Optional[List[str]] = Field(None, description="Columns to return when doing the search.")
     filters: Optional[Dict[str, Any]] = Field(None, description="Filters to apply to the search.")
-    query_type: str = Field("ANN", description="The type of query to run.")
+    query_type: str = Field("ANN", description="The type of this query. Supported values are 'ANN' and 'HYBRID'.")
     tool_name: Optional[str] = Field(None, description="The name of the retrieval tool.")
     tool_description: Optional[str] = Field(None, description="A description of the tool.")
-    # TODO: Confirm if we can add these two to the API to support direct-access indexes or a delta-sync indexes with self-managed embeddings,
-    text_column: Optional[str] = Field(None, description="If using a direct-access index or delta-sync index, specify the text column.")
+    text_column: Optional[str] = Field(None, description="The name of the text column to use for the embeddings. "
+                                                         "Required for direct-access index or delta-sync index with "
+                                                         "self-managed embeddings.")
     embedding: Optional[Embeddings] = Field(None, description="Embedding model for self-managed embeddings.")
-    # TODO: Confirm if we can add this endpoint field
-    endpoint: Optional[str] = Field(None, description="Endpoint for DatabricksVectorSearch.")
 
     # The BaseTool class requires 'name' and 'description' fields which we will populate in validate_tool_inputs()
     name: str = Field(default="", description="The name of the tool")
     description: str = Field(default="", description="The description of the tool")
+    args_schema: Type[BaseModel] = VectorSearchRetrieverToolInput
 
     _vector_store: DatabricksVectorSearch = PrivateAttr()
 
     @model_validator(mode='after')
     def validate_tool_inputs(self):
-        # Construct the vector store using provided params
         kwargs = {
             "index_name": self.index_name,
-            "endpoint": self.endpoint,
             "embedding": self.embedding,
             "text_column": self.text_column,
             "columns": self.columns,

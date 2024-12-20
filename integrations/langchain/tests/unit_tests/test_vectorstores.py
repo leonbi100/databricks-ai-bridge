@@ -1,23 +1,23 @@
 import uuid
-from typing import Any, Dict, Generator, List, Optional, Set
+from typing import Any, Dict, List, Optional, Set
 from unittest.mock import MagicMock, patch
 
 import pytest
 from databricks.vector_search.client import VectorSearchIndex  # type: ignore
 
 from databricks_langchain.vectorstores import DatabricksVectorSearch
-
 from tests.utils.vector_search import (
-    INPUT_TEXTS,
-    FakeEmbeddings,
+    ALL_INDEX_NAMES,
+    DELTA_SYNC_INDEX,
+    DIRECT_ACCESS_INDEX,
     EMBEDDING_MODEL,
     ENDPOINT_NAME,
-    DIRECT_ACCESS_INDEX,
-    DELTA_SYNC_INDEX,
-    ALL_INDEX_NAMES,
     INDEX_DETAILS,
-    mock_vs_client,
+    INPUT_TEXTS,
+    FakeEmbeddings,
+    mock_vs_client,  # noqa: F401
 )
+
 
 def init_vector_search(
     index_name: str, columns: Optional[List[str]] = None
