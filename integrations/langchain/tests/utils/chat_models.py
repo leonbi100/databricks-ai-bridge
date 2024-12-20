@@ -16,7 +16,7 @@ _MOCK_CHAT_RESPONSE = {
             "message": {
                 "role": "assistant",
                 "content": "To calculate the result of 36939 multiplied by 8922.4, "
-                           "I get:\n\n36939 x 8922.4 = 329,511,111.6",
+                "I get:\n\n36939 x 8922.4 = 329,511,111.6",
             },
             "finish_reason": "stop",
             "logprobs": None,
@@ -130,6 +130,4 @@ def mock_client() -> Generator:
 
 @pytest.fixture
 def llm() -> ChatDatabricks:
-    return ChatDatabricks(
-        endpoint="databricks-meta-llama-3-70b-instruct", target_uri="databricks"
-    )
+    return ChatDatabricks(endpoint="databricks-meta-llama-3-70b-instruct", target_uri="databricks")

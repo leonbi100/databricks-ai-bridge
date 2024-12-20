@@ -16,13 +16,13 @@ from tests.utils.vector_search import (  # noqa: F401
 
 
 def init_vector_search_tool(
-        index_name: str,
-        columns: Optional[List[str]] = None,
-        tool_name: Optional[str] = None,
-        tool_description: Optional[str] = None,
-        embedding: Optional[Embeddings] = None,
-        text_column: Optional[str] = None,
-        endpoint: Optional[str] = None
+    index_name: str,
+    columns: Optional[List[str]] = None,
+    tool_name: Optional[str] = None,
+    tool_description: Optional[str] = None,
+    embedding: Optional[Embeddings] = None,
+    text_column: Optional[str] = None,
+    endpoint: Optional[str] = None,
 ) -> VectorSearchRetrieverTool:
     kwargs: Dict[str, Any] = {
         "index_name": index_name,
@@ -42,10 +42,12 @@ def init_vector_search_tool(
         )
     return VectorSearchRetrieverTool(**kwargs)  # type: ignore[arg-type]
 
+
 @pytest.mark.parametrize("index_name", ALL_INDEX_NAMES)
 def test_init(index_name: str) -> None:
     vector_search_tool = init_vector_search_tool(index_name)
     assert isinstance(vector_search_tool, BaseTool)
+
 
 @pytest.mark.parametrize("index_name", ALL_INDEX_NAMES)
 def test_chat_model_bind_tools(llm: ChatDatabricks, index_name: str) -> None:
@@ -53,10 +55,9 @@ def test_chat_model_bind_tools(llm: ChatDatabricks, index_name: str) -> None:
 
     vector_search_tool = init_vector_search_tool(index_name)
     llm_with_tools = llm.bind_tools([vector_search_tool])
-    response = llm_with_tools.invoke(
-        "Which city is hotter today and which is bigger: LA or NY?"
-    )
+    response = llm_with_tools.invoke("Which city is hotter today and which is bigger: LA or NY?")
     assert isinstance(response, AIMessage)
+
 
 @pytest.mark.parametrize("index_name", ALL_INDEX_NAMES)
 @pytest.mark.parametrize("columns", [None, ["id", "text"]])
@@ -66,13 +67,13 @@ def test_chat_model_bind_tools(llm: ChatDatabricks, index_name: str) -> None:
 @pytest.mark.parametrize("text_column", [None, "text"])
 @pytest.mark.parametrize("endpoint", [None, "test_endpoint"])
 def test_vector_search_retriever_tool_combinations(
-        index_name: str,
-        columns: Optional[List[str]],
-        tool_name: Optional[str],
-        tool_description: Optional[str],
-        embedding: Optional[Any],
-        text_column: Optional[str],
-        endpoint: Optional[str]
+    index_name: str,
+    columns: Optional[List[str]],
+    tool_name: Optional[str],
+    tool_description: Optional[str],
+    embedding: Optional[Any],
+    text_column: Optional[str],
+    endpoint: Optional[str],
 ) -> None:
     if index_name == DELTA_SYNC_INDEX:
         embedding = None
@@ -85,7 +86,7 @@ def test_vector_search_retriever_tool_combinations(
         tool_description=tool_description,
         embedding=embedding,
         text_column=text_column,
-        endpoint=endpoint
+        endpoint=endpoint,
     )
     assert isinstance(vector_search_tool, BaseTool)
     result = vector_search_tool.invoke("Databricks Agent Framework")

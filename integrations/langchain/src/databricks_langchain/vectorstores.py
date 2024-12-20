@@ -775,4 +775,3 @@ def _validate_embedding_dimension(embeddings: Embeddings, index_details: IndexDe
                 f"The specified embedding model's dimension '{actual_dimension}' does "
                 f"not match with the index configuration '{index_embedding_dimension}'."
             )
-

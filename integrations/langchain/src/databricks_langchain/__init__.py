@@ -10,5 +10,5 @@ __all__ = [
     "DatabricksEmbeddings",
     "DatabricksVectorSearch",
     "GenieAgent",
-    "VectorSearchRetrieverTool"
+    "VectorSearchRetrieverTool",
 ]

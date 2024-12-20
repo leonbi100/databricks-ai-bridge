@@ -98,9 +98,11 @@ def cosine_similarity(X: Matrix, Y: Matrix) -> np.ndarray:
     similarity[np.isnan(similarity) | np.isinf(similarity)] = 0.0
     return similarity
 
+
 class IndexType(str, Enum):
     DIRECT_ACCESS = "DIRECT_ACCESS"
     DELTA_SYNC = "DELTA_SYNC"
+
 
 class IndexDetails:
     """An utility class to store the configuration details of an index."""
