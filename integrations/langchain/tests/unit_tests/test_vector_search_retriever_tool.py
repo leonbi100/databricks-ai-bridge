@@ -86,3 +86,20 @@ def test_vector_search_retriever_tool_combinations(
     assert isinstance(vector_search_tool, BaseTool)
     result = vector_search_tool.invoke("Databricks Agent Framework")
     assert result is not None
+
+
+@pytest.mark.parametrize("index_name", ALL_INDEX_NAMES)
+def test_vector_search_retriever_tool_description_generation(index_name: str) -> None:
+    vector_search_tool = init_vector_search_tool(index_name)
+    assert vector_search_tool.name != ""
+    assert vector_search_tool.description != ""
+    assert vector_search_tool.name == index_name
+    assert (
+        "A vector search-based retrieval tool for querying indexed embeddings."
+        in vector_search_tool.description
+    )
+    assert vector_search_tool.args_schema.model_fields["query"] is not None
+    assert vector_search_tool.args_schema.model_fields["query"].description == (
+        "The string used to query the index with and identify the most similar "
+        "vectors and return the associated documents."
+    )
