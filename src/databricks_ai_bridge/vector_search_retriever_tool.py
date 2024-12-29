@@ -2,6 +2,7 @@ from typing import Any, Dict, List, Optional
 from abc import abstractmethod
 from pydantic import BaseModel, Field
 from databricks_ai_bridge.utils.vector_search import IndexDetails
+from databricks.vector_search.client import VectorSearchIndex
 
 DEFAULT_TOOL_DESCRIPTION = "A vector search-based retrieval tool for querying indexed embeddings."
 
@@ -11,9 +12,9 @@ class VectorSearchRetrieverToolInput(BaseModel):
                     "vectors and return the associated documents."
     )
 
-class BaseVectorSearchRetrieverTool(BaseModel):
+class VectorSearchRetrieverToolMixin(BaseModel):
     """
-    Abstract base class for Databricks Vector Search retrieval tools.
+    Mixin class for Databricks Vector Search retrieval tools.
     This class provides the common structure and interface that framework-specific
     implementations should follow.
     """
@@ -37,17 +38,8 @@ class BaseVectorSearchRetrieverTool(BaseModel):
     tool_description: Optional[str] = Field(
         None, description="A description of the tool."
     )
-    text_column: Optional[str] = Field(
-        None,
-        description="The name of the text column to use for the embeddings. "
-                    "Required for direct-access index or delta-sync index with "
-                    "self-managed embeddings.",
-    )
-    # TODO see if we can make an abstract Field here for embeddings
 
-    # TODO: figure dbvs type (prob base class of DatabricksVectorSearch)
-    def _get_default_tool_description(self, dbvs: Any ) -> str:
-        index_details = IndexDetails(dbvs.index)
+    def _get_default_tool_description(self, index_details: IndexDetails) -> str:
         if index_details.is_delta_sync_index():
             from databricks.sdk import WorkspaceClient
 

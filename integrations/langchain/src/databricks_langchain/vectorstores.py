@@ -21,7 +21,8 @@ from langchain_core.documents import Document
 from langchain_core.embeddings import Embeddings
 from langchain_core.vectorstores import VST, VectorStore
 
-from databricks_langchain.utils import IndexDetails, maximal_marginal_relevance
+from databricks_langchain.utils import maximal_marginal_relevance
+from databricks_ai_bridge.utils.vector_search import IndexDetails, DatabricksVectorSearchMixin, _validate_and_get_text_column
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +32,7 @@ _NON_MANAGED_EMB_ONLY_MSG = "`%s` is not supported for index with Databricks-man
 _INDEX_NAME_PATTERN = re.compile(r"^[a-zA-Z0-9_]+\.[a-zA-Z0-9_]+\.[a-zA-Z0-9_]+$")
 
 
-class DatabricksVectorSearch(VectorStore):
+class DatabricksVectorSearch(VectorStore, DatabricksVectorSearchMixin):
     """Databricks vector store integration.
 
     Setup:
@@ -690,43 +691,8 @@ class DatabricksVectorSearch(VectorStore):
     def _parse_search_response(
         self, search_resp: Dict, ignore_cols: Optional[List[str]] = None
     ) -> List[Tuple[Document, float]]:
-        """Parse the search response into a list of Documents with score."""
-        if ignore_cols is None:
-            ignore_cols = []
-
-        columns = [col["name"] for col in search_resp.get("manifest", dict()).get("columns", [])]
-        docs_with_score = []
-        for result in search_resp.get("result", dict()).get("data_array", []):
-            doc_id = result[columns.index(self._primary_key)]
-            text_content = result[columns.index(self._text_column)]
-            ignore_cols = [self._primary_key, self._text_column] + ignore_cols
-            metadata = {
-                col: value
-                for col, value in zip(columns[:-1], result[:-1])
-                if col not in ignore_cols
-            }
-            metadata[self._primary_key] = doc_id
-            score = result[-1]
-            doc = Document(page_content=text_content, metadata=metadata)
-            docs_with_score.append((doc, score))
-        return docs_with_score
-
-
-def _validate_and_get_text_column(text_column: Optional[str], index_details: IndexDetails) -> str:
-    if index_details.is_databricks_managed_embeddings():
-        index_source_column: str = index_details.embedding_source_column["name"]
-        # check if input text column matches the source column of the index
-        if text_column is not None:
-            raise ValueError(
-                f"The index '{index_details.name}' has the source column configured as "
-                f"'{index_source_column}'. Do not pass the `text_column` parameter."
-            )
-        return index_source_column
-    else:
-        if text_column is None:
-            raise ValueError("The `text_column` parameter is required for this index.")
-        return text_column
-
+        """Parse the search response into a list of Documents with score using VectorSearchRetrieverToolMixin function."""
+        return self.parse_vector_search_response(search_resp, ignore_cols=ignore_cols, document_class=Document)
 
 def _validate_and_get_return_columns(
     columns: List[str], text_column: str, index_details: IndexDetails
