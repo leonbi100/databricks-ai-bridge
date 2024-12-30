@@ -1,6 +1,6 @@
 import json
 from enum import Enum
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, List, Tuple
 
 class IndexType(str, Enum):
     DIRECT_ACCESS = "DIRECT_ACCESS"
@@ -57,35 +57,39 @@ class IndexDetails:
     def is_databricks_managed_embeddings(self) -> bool:
         return self.is_delta_sync_index() and self.embedding_source_column.get("name") is not None
 
-class DatabricksVectorSearchMixin:
-    def parse_vector_search_response(
-        self, search_resp: Dict, ignore_cols: Optional[List[str]] = None, document_class: Any = dict
-    ) -> List[Tuple[Dict, float]]:
-        """
-        Parse the search response into a list of Documents with score.
-        The document_class parameter is used to specify the class of the document to be created.
-        """
-        if ignore_cols is None:
-            ignore_cols = []
 
-        columns = [col["name"] for col in search_resp.get("manifest", dict()).get("columns", [])]
-        docs_with_score = []
-        for result in search_resp.get("result", dict()).get("data_array", []):
-            doc_id = result[columns.index(self._index_details.primary_key)]
-            text_content = result[columns.index(self._text_column)]
-            ignore_cols = [self._primary_key, self._text_column] + ignore_cols
-            metadata = {
-                col: value
-                for col, value in zip(columns[:-1], result[:-1])
-                if col not in ignore_cols
-            }
-            metadata[self._primary_key] = doc_id
-            score = result[-1]
-            doc = document_class(page_content=text_content, metadata=metadata)
-            docs_with_score.append((doc, score))
-        return docs_with_score
+def parse_vector_search_response(
+    search_resp: Dict,
+    index_details: IndexDetails,
+    text_column: str,
+    ignore_cols: Optional[List[str]] = None,
+    document_class: Any = dict
+) -> List[Tuple[Dict, float]]:
+    """
+    Parse the search response into a list of Documents with score.
+    The document_class parameter is used to specify the class of the document to be created.
+    """
+    if ignore_cols is None:
+        ignore_cols = []
 
-def _validate_and_get_text_column(text_column: Optional[str], index_details: IndexDetails) -> str:
+    columns = [col["name"] for col in search_resp.get("manifest", dict()).get("columns", [])]
+    docs_with_score = []
+    for result in search_resp.get("result", dict()).get("data_array", []):
+        doc_id = result[columns.index(index_details.primary_key)]
+        text_content = result[columns.index(text_column)]
+        ignore_cols = [index_details.primary_key, text_column] + ignore_cols
+        metadata = {
+            col: value
+            for col, value in zip(columns[:-1], result[:-1])
+            if col not in ignore_cols
+        }
+        metadata[index_details.primary_key] = doc_id
+        score = result[-1]
+        doc = document_class(page_content=text_content, metadata=metadata)
+        docs_with_score.append((doc, score))
+    return docs_with_score
+
+def validate_and_get_text_column(text_column: Optional[str], index_details: IndexDetails) -> str:
     if index_details.is_databricks_managed_embeddings():
         index_source_column: str = index_details.embedding_source_column["name"]
         # check if input text column matches the source column of the index
@@ -99,3 +103,26 @@ def _validate_and_get_text_column(text_column: Optional[str], index_details: Ind
         if text_column is None:
             raise ValueError("The `text_column` parameter is required for this index.")
         return text_column
+
+def _validate_and_get_return_columns(
+        columns: List[str], text_column: str, index_details: IndexDetails
+) -> List[str]:
+    """
+    Get a list of columns to retrieve from the index.
+
+    If the index is direct-access index, validate the given columns against the schema.
+    """
+    # add primary key column and source column if not in columns
+    if index_details.primary_key not in columns:
+        columns.append(index_details.primary_key)
+    if text_column and text_column not in columns:
+        columns.append(text_column)
+
+    # Validate specified columns are in the index
+    if index_details.is_direct_access_index() and (index_schema := index_details.schema):
+        if missing_columns := [c for c in columns if c not in index_schema]:
+            raise ValueError(
+                "Some columns specified in `columns` are not "
+                f"in the index schema: {missing_columns}"
+            )
+    return columns

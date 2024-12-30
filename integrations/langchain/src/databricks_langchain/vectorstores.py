@@ -22,7 +22,7 @@ from langchain_core.embeddings import Embeddings
 from langchain_core.vectorstores import VST, VectorStore
 
 from databricks_langchain.utils import maximal_marginal_relevance
-from databricks_ai_bridge.utils.vector_search import IndexDetails, DatabricksVectorSearchMixin, _validate_and_get_text_column
+from databricks_ai_bridge.utils.vector_search import IndexDetails, parse_vector_search_response, validate_and_get_text_column, validate_and_get_return_columns
 
 logger = logging.getLogger(__name__)
 
@@ -32,7 +32,7 @@ _NON_MANAGED_EMB_ONLY_MSG = "`%s` is not supported for index with Databricks-man
 _INDEX_NAME_PATTERN = re.compile(r"^[a-zA-Z0-9_]+\.[a-zA-Z0-9_]+\.[a-zA-Z0-9_]+$")
 
 
-class DatabricksVectorSearch(VectorStore, DatabricksVectorSearchMixin):
+class DatabricksVectorSearch(VectorStore):
     """Databricks vector store integration.
 
     Setup:
@@ -247,8 +247,8 @@ class DatabricksVectorSearch(VectorStore, DatabricksVectorSearchMixin):
 
         _validate_embedding(embedding, self._index_details)
         self._embeddings = embedding
-        self._text_column = _validate_and_get_text_column(text_column, self._index_details)
-        self._columns = _validate_and_get_return_columns(
+        self._text_column = validate_and_get_text_column(text_column, self._index_details)
+        self._columns = validate_and_get_return_columns(
             columns or [], self._text_column, self._index_details
         )
         self._primary_key = self._index_details.primary_key
@@ -431,7 +431,12 @@ class DatabricksVectorSearch(VectorStore, DatabricksVectorSearchMixin):
             num_results=k,
             query_type=query_type,
         )
-        return self._parse_search_response(search_resp)
+        return parse_vector_search_response(
+            search_resp,
+            self._index_details,
+            self._text_column,
+            document_class=Document
+        )
 
     def _select_relevance_score_fn(self) -> Callable[[float], float]:
         """
@@ -541,7 +546,12 @@ class DatabricksVectorSearch(VectorStore, DatabricksVectorSearchMixin):
             num_results=k,
             query_type=query_type,
         )
-        return self._parse_search_response(search_resp)
+        return parse_vector_search_response(
+            search_resp,
+            self._index_details,
+            self._text_column,
+            document_class=Document
+        )
 
     def max_marginal_relevance_search(
         self,
@@ -674,7 +684,13 @@ class DatabricksVectorSearch(VectorStore, DatabricksVectorSearchMixin):
         )
 
         ignore_cols: List = [embedding_column] if embedding_column not in self._columns else []
-        candidates = self._parse_search_response(search_resp, ignore_cols=ignore_cols)
+        candidates = parse_vector_search_response(
+            search_resp,
+            self._index_details,
+            self._text_column,
+            ignore_cols=ignore_cols,
+            document_class=Document
+        )
         selected_results = [r[0] for i, r in enumerate(candidates) if i in mmr_selected]
         return selected_results
 
@@ -687,35 +703,6 @@ class DatabricksVectorSearch(VectorStore, DatabricksVectorSearchMixin):
         **kwargs: Any,
     ) -> List[Document]:
         raise NotImplementedError
-
-    def _parse_search_response(
-        self, search_resp: Dict, ignore_cols: Optional[List[str]] = None
-    ) -> List[Tuple[Document, float]]:
-        """Parse the search response into a list of Documents with score using VectorSearchRetrieverToolMixin function."""
-        return self.parse_vector_search_response(search_resp, ignore_cols=ignore_cols, document_class=Document)
-
-def _validate_and_get_return_columns(
-    columns: List[str], text_column: str, index_details: IndexDetails
-) -> List[str]:
-    """
-    Get a list of columns to retrieve from the index.
-
-    If the index is direct-access index, validate the given columns against the schema.
-    """
-    # add primary key column and source column if not in columns
-    if index_details.primary_key not in columns:
-        columns.append(index_details.primary_key)
-    if text_column and text_column not in columns:
-        columns.append(text_column)
-
-    # Validate specified columns are in the index
-    if index_details.is_direct_access_index() and (index_schema := index_details.schema):
-        if missing_columns := [c for c in columns if c not in index_schema]:
-            raise ValueError(
-                "Some columns specified in `columns` are not "
-                f"in the index schema: {missing_columns}"
-            )
-    return columns
 
 
 def _validate_embedding(embedding: Optional[Embeddings], index_details: IndexDetails) -> None:
