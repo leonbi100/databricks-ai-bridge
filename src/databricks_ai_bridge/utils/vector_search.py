@@ -104,7 +104,7 @@ def validate_and_get_text_column(text_column: Optional[str], index_details: Inde
             raise ValueError("The `text_column` parameter is required for this index.")
         return text_column
 
-def _validate_and_get_return_columns(
+def validate_and_get_return_columns(
         columns: List[str], text_column: str, index_details: IndexDetails
 ) -> List[str]:
     """
