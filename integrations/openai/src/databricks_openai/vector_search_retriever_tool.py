@@ -143,7 +143,6 @@ class VectorSearchRetrieverTool(VectorSearchRetrieverToolMixin):
             for llm_tool_call in llm_tool_calls:
                 # Only process tool calls that correspond to the self.tool VectorSearchRetrieverToolInput
                 if not is_tool_call_for_index(llm_tool_call):
-                    raise ValueError("The tool call does not correspond to the VectorSearchRetrieverToolInput.")
                     continue
 
                 query_text, query_vector = get_query_text_vector(llm_tool_call)
