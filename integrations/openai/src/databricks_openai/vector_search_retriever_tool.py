@@ -9,7 +9,7 @@ from pydantic import BaseModel, Field, PrivateAttr, model_validator, create_mode
 
 from databricks_ai_bridge.vector_search_retriever_tool import VectorSearchRetrieverToolMixin, VectorSearchRetrieverToolInput
 from databricks_ai_bridge.utils.vector_search import IndexDetails, parse_vector_search_response, validate_and_get_text_column, validate_and_get_return_columns
-from databricks.vector_search.client import VectorSearchClient, VectorSearchIndex
+from databricks.vector_search.client import VectorSearchIndex
 import json
 
 class VectorSearchRetrieverTool(VectorSearchRetrieverToolMixin):
@@ -55,6 +55,8 @@ class VectorSearchRetrieverTool(VectorSearchRetrieverToolMixin):
 
     @model_validator(mode="after")
     def _validate_tool_inputs(self):
+        from databricks.vector_search.client import VectorSearchClient  # import here so we can mock in tests
+
         self._index = VectorSearchClient().get_index(index_name=self.index_name)
         self._index_details = IndexDetails(self._index)
         self.text_column = validate_and_get_text_column(self.text_column, self._index_details)
@@ -75,8 +77,8 @@ class VectorSearchRetrieverTool(VectorSearchRetrieverToolMixin):
     def execute_retriever_calls(self,
                                response: ChatCompletion,
                                choice_index: int = 0,
-                               open_ai_client: OpenAI = None,
-                               embedding_model_name: str = None) -> List[Dict[str, Any]]:
+                               embedding_model_name: str = None,
+                               openai_client: OpenAI = None) -> List[Dict[str, Any]]:
         """
         Execute the VectorSearchIndex tool calls from the ChatCompletions response that correspond to the
         self.tool VectorSearchRetrieverToolInput and attach the retrieved documents into toll call messages.
@@ -85,10 +87,10 @@ class VectorSearchRetrieverTool(VectorSearchRetrieverToolMixin):
             response: The chat completion response object returned by the OpenAI API.
             choice_index: The index of the choice to process. Defaults to 0. Note that multiple
                 choices are not supported yet.
-            open_ai_client: The OpenAI client object to use for generating embeddings. Required for
-                            direct access indexes or delta-sync indexes with self-managed embeddings.
             embedding_model_name: The name of the embedding model to use for embedding the query text.
                                   Required for direct access indexes or delta-sync indexes with self-managed embeddings.
+            openai_client: The OpenAI client object used to generate embeddings for retrieval queries. If not provided,
+                           the default OpenAI client in the current environment will be used.
 
         Returns:
             A list of messages containing the assistant message and the retriever call results
@@ -98,19 +100,24 @@ class VectorSearchRetrieverTool(VectorSearchRetrieverToolMixin):
         def get_query_text_vector(tool_call: ChatCompletionMessageToolCall) -> Tuple[Optional[str], Optional[List[float]]]:
             query = json.loads(tool_call.function.arguments)["query"]
             if self._index_details.is_databricks_managed_embeddings():
-                if open_ai_client or embedding_model_name:
+                if embedding_model_name:
                     raise ValueError(
                         f"The index '{self._index_details.name}' uses Databricks-managed embeddings. "
-                        "Do not pass the `open_ai_client` or `embedding_model_name` parameters when executing retriever calls."
+                        "Do not pass the `embedding_model_name` parameter when executing retriever calls."
                     )
                 return query, None
 
             # For non-Databricks-managed embeddings
-            if not open_ai_client or not embedding_model_name:
-                raise ValueError("OpenAI client and embedding model name are required for non-Databricks-managed "
+            from openai import OpenAI
+            oai_client = openai_client or OpenAI()
+            if not oai_client.api_key:
+                raise ValueError("OpenAI API key is required to generate embeddings for retrieval queries.")
+            if not embedding_model_name:
+                raise ValueError("The embedding model name is required for non-Databricks-managed "
                                  "embeddings Vector Search indexes in order to generate embeddings for retrieval queries.")
+
             text = query if self.query_type and self.query_type.upper() == "HYBRID" else None
-            vector = open_ai_client.embeddings.create(
+            vector = oai_client.embeddings.create(
                 input=query,
                 model=embedding_model_name
             )['data'][0]['embedding']
@@ -127,6 +134,8 @@ class VectorSearchRetrieverTool(VectorSearchRetrieverToolMixin):
             return tool_call.function.name == self.tool["function"]["name"] and \
                 tool_call_arguments == vs_index_arguments
 
+        if type(response) is not ChatCompletion:
+            raise ValueError("response must be an instance of ChatCompletion")
         message = response.choices[choice_index].message
         llm_tool_calls = message.tool_calls
         function_calls = []
@@ -134,6 +143,7 @@ class VectorSearchRetrieverTool(VectorSearchRetrieverToolMixin):
             for llm_tool_call in llm_tool_calls:
                 # Only process tool calls that correspond to the self.tool VectorSearchRetrieverToolInput
                 if not is_tool_call_for_index(llm_tool_call):
+                    raise ValueError("The tool call does not correspond to the VectorSearchRetrieverToolInput.")
                     continue
 
                 query_text, query_vector = get_query_text_vector(llm_tool_call)
