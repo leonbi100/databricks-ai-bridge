@@ -6,10 +6,10 @@ from langchain_core.tools import BaseTool
 
 from databricks_langchain import ChatDatabricks, VectorSearchRetrieverTool
 from tests.utils.chat_models import llm, mock_client  # noqa: F401
-from tests.utils.vector_search import (  # noqa: F401
+from tests.utils.vector_search import EMBEDDING_MODEL
+from databricks_ai_bridge.test_utils.vector_search import(  # noqa: F401
     ALL_INDEX_NAMES,
     DELTA_SYNC_INDEX,
-    EMBEDDING_MODEL,
     mock_vs_client,
     mock_workspace_client,
 )
