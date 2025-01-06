@@ -1,6 +1,7 @@
 import json
 from enum import Enum
-from typing import Any, Dict, Optional, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
+
 
 class IndexType(str, Enum):
     DIRECT_ACCESS = "DIRECT_ACCESS"

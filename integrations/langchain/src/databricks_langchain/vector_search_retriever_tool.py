@@ -1,12 +1,16 @@
-from typing import Any, Dict, List, Optional, Type
+from typing import Optional, Type
 
+from databricks_ai_bridge.utils.vector_search import IndexDetails
+from databricks_ai_bridge.vector_search_retriever_tool import (
+    VectorSearchRetrieverToolInput,
+    VectorSearchRetrieverToolMixin,
+)
 from langchain_core.embeddings import Embeddings
 from langchain_core.tools import BaseTool
 from pydantic import BaseModel, Field, PrivateAttr, model_validator
 
 from databricks_langchain.vectorstores import DatabricksVectorSearch
-from databricks_ai_bridge.vector_search_retriever_tool import VectorSearchRetrieverToolMixin, VectorSearchRetrieverToolInput
-from databricks_ai_bridge.utils.vector_search import IndexDetails
+
 
 class VectorSearchRetrieverTool(BaseTool, VectorSearchRetrieverToolMixin):
     """

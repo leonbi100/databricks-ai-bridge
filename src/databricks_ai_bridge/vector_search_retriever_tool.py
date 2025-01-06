@@ -1,5 +1,7 @@
 from typing import Any, Dict, List, Optional
+
 from pydantic import BaseModel, Field
+
 from databricks_ai_bridge.utils.vector_search import IndexDetails
 
 DEFAULT_TOOL_DESCRIPTION = "A vector search-based retrieval tool for querying indexed embeddings."

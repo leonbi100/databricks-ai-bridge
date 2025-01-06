@@ -17,12 +17,17 @@ from typing import (
 )
 
 import numpy as np
+from databricks_ai_bridge.utils.vector_search import (
+    IndexDetails,
+    parse_vector_search_response,
+    validate_and_get_return_columns,
+    validate_and_get_text_column,
+)
 from langchain_core.documents import Document
 from langchain_core.embeddings import Embeddings
 from langchain_core.vectorstores import VST, VectorStore
 
 from databricks_langchain.utils import maximal_marginal_relevance
-from databricks_ai_bridge.utils.vector_search import IndexDetails, parse_vector_search_response, validate_and_get_text_column, validate_and_get_return_columns
 
 logger = logging.getLogger(__name__)
 
