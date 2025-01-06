@@ -437,10 +437,7 @@ class DatabricksVectorSearch(VectorStore):
             query_type=query_type,
         )
         return parse_vector_search_response(
-            search_resp,
-            self._index_details,
-            self._text_column,
-            document_class=Document
+            search_resp, self._index_details, self._text_column, document_class=Document
         )
 
     def _select_relevance_score_fn(self) -> Callable[[float], float]:
@@ -552,10 +549,7 @@ class DatabricksVectorSearch(VectorStore):
             query_type=query_type,
         )
         return parse_vector_search_response(
-            search_resp,
-            self._index_details,
-            self._text_column,
-            document_class=Document
+            search_resp, self._index_details, self._text_column, document_class=Document
         )
 
     def max_marginal_relevance_search(
@@ -694,7 +688,7 @@ class DatabricksVectorSearch(VectorStore):
             self._index_details,
             self._text_column,
             ignore_cols=ignore_cols,
-            document_class=Document
+            document_class=Document,
         )
         selected_results = [r[0] for i, r in enumerate(candidates) if i in mmr_selected]
         return selected_results
@@ -708,6 +702,7 @@ class DatabricksVectorSearch(VectorStore):
         **kwargs: Any,
     ) -> List[Document]:
         raise NotImplementedError
+
 
 def _validate_embedding(embedding: Optional[Embeddings], index_details: IndexDetails) -> None:
     if index_details.is_databricks_managed_embeddings():

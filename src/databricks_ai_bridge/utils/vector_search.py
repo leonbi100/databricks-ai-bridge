@@ -7,6 +7,7 @@ class IndexType(str, Enum):
     DIRECT_ACCESS = "DIRECT_ACCESS"
     DELTA_SYNC = "DELTA_SYNC"
 
+
 class IndexDetails:
     """An utility class to store the configuration details of an index."""
 
@@ -60,11 +61,11 @@ class IndexDetails:
 
 
 def parse_vector_search_response(
-        search_resp: Dict,
-        index_details: IndexDetails,
-        text_column: str,
-        ignore_cols: Optional[List[str]] = None,
-        document_class: Any = dict
+    search_resp: Dict,
+    index_details: IndexDetails,
+    text_column: str,
+    ignore_cols: Optional[List[str]] = None,
+    document_class: Any = dict,
 ) -> List[Tuple[Dict, float]]:
     """
     Parse the search response into a list of Documents with score.
@@ -80,15 +81,14 @@ def parse_vector_search_response(
         text_content = result[columns.index(text_column)]
         ignore_cols = [index_details.primary_key, text_column] + ignore_cols
         metadata = {
-            col: value
-            for col, value in zip(columns[:-1], result[:-1])
-            if col not in ignore_cols
+            col: value for col, value in zip(columns[:-1], result[:-1]) if col not in ignore_cols
         }
         metadata[index_details.primary_key] = doc_id
         score = result[-1]
         doc = document_class(page_content=text_content, metadata=metadata)
         docs_with_score.append((doc, score))
     return docs_with_score
+
 
 def validate_and_get_text_column(text_column: Optional[str], index_details: IndexDetails) -> str:
     if index_details.is_databricks_managed_embeddings():
@@ -105,8 +105,9 @@ def validate_and_get_text_column(text_column: Optional[str], index_details: Inde
             raise ValueError("The `text_column` parameter is required for this index.")
         return text_column
 
+
 def validate_and_get_return_columns(
-        columns: List[str], text_column: str, index_details: IndexDetails
+    columns: List[str], text_column: str, index_details: IndexDetails
 ) -> List[str]:
     """
     Get a list of columns to retrieve from the index.

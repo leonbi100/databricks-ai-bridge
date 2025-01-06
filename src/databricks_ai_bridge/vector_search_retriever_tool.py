@@ -6,11 +6,13 @@ from databricks_ai_bridge.utils.vector_search import IndexDetails
 
 DEFAULT_TOOL_DESCRIPTION = "A vector search-based retrieval tool for querying indexed embeddings."
 
+
 class VectorSearchRetrieverToolInput(BaseModel):
     query: str = Field(
         description="The string used to query the index with and identify the most similar "
-                    "vectors and return the associated documents."
+        "vectors and return the associated documents."
     )
+
 
 class VectorSearchRetrieverToolMixin(BaseModel):
     """
@@ -26,18 +28,12 @@ class VectorSearchRetrieverToolMixin(BaseModel):
     columns: Optional[List[str]] = Field(
         None, description="Columns to return when doing the search."
     )
-    filters: Optional[Dict[str, Any]] = Field(
-        None, description="Filters to apply to the search."
-    )
+    filters: Optional[Dict[str, Any]] = Field(None, description="Filters to apply to the search.")
     query_type: str = Field(
         "ANN", description="The type of this query. Supported values are 'ANN' and 'HYBRID'."
     )
-    tool_name: Optional[str] = Field(
-        None, description="The name of the retrieval tool."
-    )
-    tool_description: Optional[str] = Field(
-        None, description="A description of the tool."
-    )
+    tool_name: Optional[str] = Field(None, description="The name of the retrieval tool.")
+    tool_description: Optional[str] = Field(None, description="A description of the tool.")
 
     def _get_default_tool_description(self, index_details: IndexDetails) -> str:
         if index_details.is_delta_sync_index():
@@ -48,13 +44,13 @@ class VectorSearchRetrieverToolMixin(BaseModel):
             source_table_comment = w.tables.get(full_name=source_table).comment
             if source_table_comment:
                 return (
-                        DEFAULT_TOOL_DESCRIPTION
-                        + f" The queried index uses the source table {source_table} with the description: "
-                        + source_table_comment
+                    DEFAULT_TOOL_DESCRIPTION
+                    + f" The queried index uses the source table {source_table} with the description: "
+                    + source_table_comment
                 )
             else:
                 return (
-                        DEFAULT_TOOL_DESCRIPTION
-                        + f" The queried index uses the source table {source_table}"
+                    DEFAULT_TOOL_DESCRIPTION
+                    + f" The queried index uses the source table {source_table}"
                 )
         return DEFAULT_TOOL_DESCRIPTION
