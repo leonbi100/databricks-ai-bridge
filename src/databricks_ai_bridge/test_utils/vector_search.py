@@ -12,7 +12,8 @@ DEFAULT_VECTOR_DIMENSION = 4
 def embed_documents(embedding_texts: List[str]) -> List[List[float]]:
     """Return simple embeddings."""
     return [
-        [float(1.0)] * (DEFAULT_VECTOR_DIMENSION - 1) + [float(i)] for i in range(len(embedding_texts))
+        [float(1.0)] * (DEFAULT_VECTOR_DIMENSION - 1) + [float(i)]
+        for i in range(len(embedding_texts))
     ]
 
 ### Dummy similarity_search() Response ###
@@ -99,12 +100,12 @@ INDEX_DETAILS = {
                 }
             ],
             "schema_json": f"{{"
-                           f'"{"id"}": "int", '
-                           f'"feat1": "str", '
-                           f'"feat2": "float", '
-                           f'"text": "string", '
-                           f'"{"text_vector"}": "array<float>"'
-                           f"}}",
+            f'"{"id"}": "int", '
+            f'"feat1": "str", '
+            f'"feat2": "float", '
+            f'"text": "string", '
+            f'"{"text_vector"}": "array<float>"'
+            f"}}",
         },
     },
 }
@@ -113,8 +114,8 @@ INDEX_DETAILS = {
 @pytest.fixture(autouse=True)
 def mock_vs_client() -> Generator:
     def _get_index(
-            endpoint_name: Optional[str] = None,
-            index_name: str = None,  # type: ignore
+        endpoint_name: Optional[str] = None,
+        index_name: str = None,  # type: ignore
     ) -> MagicMock:
         index = MagicMock(spec=VectorSearchIndex)
         index.describe.return_value = INDEX_DETAILS[index_name]
@@ -124,8 +125,8 @@ def mock_vs_client() -> Generator:
     mock_client = MagicMock()
     mock_client.get_index.side_effect = _get_index
     with mock.patch(
-            "databricks.vector_search.client.VectorSearchClient",
-            return_value=mock_client,
+        "databricks.vector_search.client.VectorSearchClient",
+        return_value=mock_client,
     ):
         yield
 
@@ -140,7 +141,7 @@ def mock_workspace_client() -> Generator:
     mock_client = MagicMock()
     mock_client.tables.get.side_effect = _get_table_comment
     with patch(
-            "databricks.sdk.WorkspaceClient",
-            return_value=mock_client,
+        "databricks.sdk.WorkspaceClient",
+        return_value=mock_client,
     ):
         yield

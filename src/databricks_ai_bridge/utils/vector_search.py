@@ -1,6 +1,6 @@
 import json
 from enum import Enum
-from typing import Any, Dict, Optional, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 class IndexType(str, Enum):
     DIRECT_ACCESS = "DIRECT_ACCESS"
@@ -63,7 +63,7 @@ def parse_vector_search_response(
     index_details: IndexDetails,
     text_column: str,
     ignore_cols: Optional[List[str]] = None,
-    document_class: Any = dict
+    document_class: Any = dict,
 ) -> List[Tuple[Dict, float]]:
     """
     Parse the search response into a list of Documents with score.
@@ -79,9 +79,7 @@ def parse_vector_search_response(
         text_content = result[columns.index(text_column)]
         ignore_cols = [index_details.primary_key, text_column] + ignore_cols
         metadata = {
-            col: value
-            for col, value in zip(columns[:-1], result[:-1])
-            if col not in ignore_cols
+            col: value for col, value in zip(columns[:-1], result[:-1]) if col not in ignore_cols
         }
         metadata[index_details.primary_key] = doc_id
         score = result[-1]
@@ -105,11 +103,10 @@ def validate_and_get_text_column(text_column: Optional[str], index_details: Inde
         return text_column
 
 def validate_and_get_return_columns(
-        columns: List[str], text_column: str, index_details: IndexDetails
+    columns: List[str], text_column: str, index_details: IndexDetails
 ) -> List[str]:
     """
     Get a list of columns to retrieve from the index.
-
     If the index is direct-access index, validate the given columns against the schema.
     """
     # add primary key column and source column if not in columns

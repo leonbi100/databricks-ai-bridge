@@ -1,14 +1,15 @@
-from typing import Any, Dict, List, Optional, Type
+from typing import Optional, Type
 
+from databricks_ai_bridge.utils.vector_search import IndexDetails
+from databricks_ai_bridge.vector_search_retriever_tool import (
+    VectorSearchRetrieverToolInput,
+    VectorSearchRetrieverToolMixin,
+)
 from langchain_core.embeddings import Embeddings
 from langchain_core.tools import BaseTool
 from pydantic import BaseModel, Field, PrivateAttr, model_validator
 
 from databricks_langchain.vectorstores import DatabricksVectorSearch
-
-from databricks_ai_bridge.vector_search_retriever_tool import VectorSearchRetrieverToolMixin, VectorSearchRetrieverToolInput
-from databricks_ai_bridge.utils.vector_search import IndexDetails
-
 
 class VectorSearchRetrieverTool(BaseTool, VectorSearchRetrieverToolMixin):
     """
@@ -16,6 +17,16 @@ class VectorSearchRetrieverTool(BaseTool, VectorSearchRetrieverToolMixin):
     This class integrates with Databricks Vector Search and provides a convenient interface
     for building a retriever tool for agents.
     """
+
+    text_column: Optional[str] = Field(
+        None,
+        description="The name of the text column to use for the embeddings. "
+        "Required for direct-access index or delta-sync index with "
+        "self-managed embeddings.",
+    )
+    embedding: Optional[Embeddings] = Field(
+        None, description="Embedding model for self-managed embeddings."
+    )
 
     # The BaseTool class requires 'name' and 'description' fields which we will populate in validate_tool_inputs()
     name: str = Field(default="", description="The name of the tool")
@@ -46,7 +57,9 @@ class VectorSearchRetrieverTool(BaseTool, VectorSearchRetrieverToolMixin):
         self._vector_store = dbvs
 
         self.name = self.tool_name or self.index_name
-        self.description = self.tool_description or self._get_default_tool_description(IndexDetails(dbvs.index))
+        self.description = self.tool_description or self._get_default_tool_description(
+            IndexDetails(dbvs.index)
+        )
 
         return self
 

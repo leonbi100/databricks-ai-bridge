@@ -1,6 +1,7 @@
 from typing import List
-from langchain_core.embeddings import Embeddings
+
 from databricks_ai_bridge.test_utils.vector_search import DEFAULT_VECTOR_DIMENSION
+from langchain_core.embeddings import Embeddings
 
 class FakeEmbeddings(Embeddings):
     """Fake embeddings functionality for testing."""

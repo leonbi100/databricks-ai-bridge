@@ -4,12 +4,6 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from databricks.vector_search.client import VectorSearchIndex  # type: ignore
-
-from databricks_langchain.vectorstores import DatabricksVectorSearch
-from tests.utils.vector_search import (
-    EMBEDDING_MODEL,
-    FakeEmbeddings,
-)
 from databricks_ai_bridge.test_utils.vector_search import (  # noqa: F401
     ALL_INDEX_NAMES,
     DELTA_SYNC_INDEX,
@@ -17,8 +11,13 @@ from databricks_ai_bridge.test_utils.vector_search import (  # noqa: F401
     ENDPOINT_NAME,
     INDEX_DETAILS,
     INPUT_TEXTS,
-    mock_workspace_client,
-    mock_vs_client
+    mock_vs_client,  # noqa: F401
+)
+
+from databricks_langchain.vectorstores import DatabricksVectorSearch
+from tests.utils.vector_search import (
+    EMBEDDING_MODEL,
+    FakeEmbeddings,
 )
 
 
