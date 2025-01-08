@@ -1,4 +1,5 @@
 from typing import Any, Dict, List, Optional
+
 from pydantic import BaseModel, Field
 
 from databricks_ai_bridge.utils.vector_search import IndexDetails
@@ -11,6 +12,7 @@ class VectorSearchRetrieverToolInput(BaseModel):
         description="The string used to query the index with and identify the most similar "
         "vectors and return the associated documents."
     )
+
 
 class VectorSearchRetrieverToolMixin(BaseModel):
     """

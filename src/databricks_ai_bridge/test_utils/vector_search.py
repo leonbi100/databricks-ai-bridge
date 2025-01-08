@@ -9,12 +9,14 @@ from databricks.vector_search.client import VectorSearchIndex  # type: ignore
 INPUT_TEXTS = ["foo", "bar", "baz"]
 DEFAULT_VECTOR_DIMENSION = 4
 
+
 def embed_documents(embedding_texts: List[str]) -> List[List[float]]:
     """Return simple embeddings."""
     return [
         [float(1.0)] * (DEFAULT_VECTOR_DIMENSION - 1) + [float(i)]
         for i in range(len(embedding_texts))
     ]
+
 
 ### Dummy similarity_search() Response ###
 EXAMPLE_SEARCH_RESPONSE = {

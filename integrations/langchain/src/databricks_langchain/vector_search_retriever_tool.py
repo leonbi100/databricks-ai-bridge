@@ -11,6 +11,7 @@ from pydantic import BaseModel, Field, PrivateAttr, model_validator
 
 from databricks_langchain.vectorstores import DatabricksVectorSearch
 
+
 class VectorSearchRetrieverTool(BaseTool, VectorSearchRetrieverToolMixin):
     """
     A utility class to create a vector search-based retrieval tool for querying indexed embeddings.

@@ -2,9 +2,11 @@ import json
 from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple
 
+
 class IndexType(str, Enum):
     DIRECT_ACCESS = "DIRECT_ACCESS"
     DELTA_SYNC = "DELTA_SYNC"
+
 
 class IndexDetails:
     """An utility class to store the configuration details of an index."""
@@ -87,6 +89,7 @@ def parse_vector_search_response(
         docs_with_score.append((doc, score))
     return docs_with_score
 
+
 def validate_and_get_text_column(text_column: Optional[str], index_details: IndexDetails) -> str:
     if index_details.is_databricks_managed_embeddings():
         index_source_column: str = index_details.embedding_source_column["name"]
@@ -101,6 +104,7 @@ def validate_and_get_text_column(text_column: Optional[str], index_details: Inde
         if text_column is None:
             raise ValueError("The `text_column` parameter is required for this index.")
         return text_column
+
 
 def validate_and_get_return_columns(
     columns: List[str], text_column: str, index_details: IndexDetails
