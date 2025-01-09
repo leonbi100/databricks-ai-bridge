@@ -75,7 +75,7 @@ class VectorSearchRetrieverTool(VectorSearchRetrieverToolMixin):
         # OpenAI tool names must match the pattern '^[a-zA-Z0-9_-]+$'."
         # The '.' from the index name are not allowed
         def rewrite_index_name(index_name: str):
-            return index_name.split(".")[-1]
+            return index_name.replace(".", "_")
 
         self.tool = pydantic_function_tool(
             VectorSearchRetrieverToolInput,
@@ -183,10 +183,9 @@ class VectorSearchRetrieverTool(VectorSearchRetrieverToolMixin):
                     query_type=self.query_type,
                 )
                 docs_with_score: List[Tuple[Dict, float]] = parse_vector_search_response(
-                    search_resp,
-                    self._index_details,
-                    self.text_column,
-                    ignore_cols=[],
+                    search_resp=search_resp,
+                    index_details=self._index_details,
+                    text_column=self.text_column,
                     document_class=dict,
                 )
 
