@@ -120,7 +120,7 @@ class VectorSearchRetrieverTool(VectorSearchRetrieverToolMixin):
             vector = oai_client.embeddings.create(
                 input=query,
                 model=embedding_model_name
-            )['data'][0]['embedding']
+            ).data[0].embedding
             if (index_embedding_dimension := self._index_details.embedding_vector_column.get("embedding_dimension")) and \
                     len(vector) != index_embedding_dimension:
                 raise ValueError(
