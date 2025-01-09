@@ -34,16 +34,6 @@ class VectorSearchRetrieverTool(BaseTool, VectorSearchRetrieverToolMixin):
     description: str = Field(default="", description="The description of the tool")
     args_schema: Type[BaseModel] = VectorSearchRetrieverToolInput
 
-    embedding: Optional[Embeddings] = Field(
-        None, description="Embedding model for self-managed embeddings."
-    )
-    text_column: Optional[str] = Field(
-        None,
-        description="The name of the text column to use for the embeddings. "
-                    "Required for direct-access index or delta-sync index with "
-                    "self-managed embeddings.",
-    )
-
     _vector_store: DatabricksVectorSearch = PrivateAttr()
 
     @model_validator(mode="after")
