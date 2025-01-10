@@ -12,6 +12,7 @@ from databricks_ai_bridge.test_utils.vector_search import (  # noqa: F401
 from databricks_llamaindex import VectorSearchRetrieverTool
 from llama_index.core.tools import FunctionTool
 from llama_index.core.embeddings import BaseEmbedding
+from databricks_ai_bridge.vector_search_retriever_tool import VectorSearchRetrieverToolInput
 
 
 class FakeEmbeddings(BaseEmbedding):
@@ -95,15 +96,11 @@ def test_vector_search_retriever_tool_combinations(
 @pytest.mark.parametrize("index_name", ALL_INDEX_NAMES)
 def test_vector_search_retriever_tool_description_generation(index_name: str) -> None:
     vector_search_tool = init_vector_search_tool(index_name)
-    assert vector_search_tool.name != ""
-    assert vector_search_tool.description != ""
-    assert vector_search_tool.name == index_name
+    assert vector_search_tool.metadata.name != ""
+    assert vector_search_tool.metadata.description != ""
+    assert vector_search_tool.metadata.fn_schema == VectorSearchRetrieverToolInput
+    assert vector_search_tool.metadata.name == index_name
     assert (
             "A vector search-based retrieval tool for querying indexed embeddings."
-            in vector_search_tool.description
-    )
-    assert vector_search_tool.args_schema.model_fields["query"] is not None
-    assert vector_search_tool.args_schema.model_fields["query"].description == (
-        "The string used to query the index with and identify the most similar "
-        "vectors and return the associated documents."
+            in vector_search_tool.metadata.description
     )
