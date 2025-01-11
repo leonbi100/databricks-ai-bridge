@@ -1,13 +1,20 @@
+from typing import Any, Dict, List, Optional, Tuple
+
+from databricks_ai_bridge.utils.vector_search import (
+    IndexDetails,
+    parse_vector_search_response,
+    validate_and_get_return_columns,
+    validate_and_get_text_column,
+)
+from databricks_ai_bridge.vector_search_retriever_tool import (
+    VectorSearchRetrieverToolInput,
+    VectorSearchRetrieverToolMixin,
+)
 from llama_index.core.embeddings import BaseEmbedding
-
-from databricks_ai_bridge.vector_search_retriever_tool import VectorSearchRetrieverToolMixin, VectorSearchRetrieverToolInput
-from databricks_ai_bridge.utils.vector_search import IndexDetails, parse_vector_search_response, validate_and_get_text_column, validate_and_get_return_columns
-
-from typing import Any, Dict, List, Optional, Tuple, Type
-
-from pydantic import BaseModel, Field, PrivateAttr, model_validator
 from llama_index.core.tools import FunctionTool
 from llama_index.core.tools.types import ToolMetadata
+from pydantic import Field, PrivateAttr
+
 
 class VectorSearchRetrieverTool(FunctionTool, VectorSearchRetrieverToolMixin):
     """Vector search retriever tool implementation."""
@@ -15,8 +22,8 @@ class VectorSearchRetrieverTool(FunctionTool, VectorSearchRetrieverToolMixin):
     text_column: Optional[str] = Field(
         None,
         description="The name of the text column to use for the embeddings. "
-                    "Required for direct-access index or delta-sync index with "
-                    "self-managed embeddings.",
+        "Required for direct-access index or delta-sync index with "
+        "self-managed embeddings.",
     )
     embedding: Optional[BaseEmbedding] = Field(
         None, description="Embedding model for self-managed embeddings."
@@ -35,12 +42,15 @@ class VectorSearchRetrieverTool(FunctionTool, VectorSearchRetrieverToolMixin):
 
         # Initialize private attributes
         from databricks.vector_search.client import VectorSearchClient
+
         self._index = VectorSearchClient().get_index(index_name=self.index_name)
         self._index_details = IndexDetails(self._index)
 
         # Validate columns
         self.text_column = validate_and_get_text_column(self.text_column, self._index_details)
-        self.columns = validate_and_get_return_columns(self.columns or [], self.text_column, self._index_details)
+        self.columns = validate_and_get_return_columns(
+            self.columns or [], self.text_column, self._index_details
+        )
 
         # Define the similarity search function
         def similarity_search(query: str) -> List[Dict[str, Any]]:
@@ -54,13 +64,18 @@ class VectorSearchRetrieverTool(FunctionTool, VectorSearchRetrieverToolMixin):
                     return query, None
 
                 if not self.embedding:
-                    raise ValueError("The embedding model name is required for non-Databricks-managed "
-                                     "embeddings Vector Search indexes in order to generate embeddings for retrieval queries.")
+                    raise ValueError(
+                        "The embedding model name is required for non-Databricks-managed "
+                        "embeddings Vector Search indexes in order to generate embeddings for retrieval queries."
+                    )
 
                 text = query if self.query_type and self.query_type.upper() == "HYBRID" else None
                 vector = self.embedding.get_text_embedding(text=query)
-                if (index_embedding_dimension := self._index_details.embedding_vector_column.get("embedding_dimension")) and \
-                        len(vector) != index_embedding_dimension:
+                if (
+                    index_embedding_dimension := self._index_details.embedding_vector_column.get(
+                        "embedding_dimension"
+                    )
+                ) and len(vector) != index_embedding_dimension:
                     raise ValueError(
                         f"Expected embedding dimension {index_embedding_dimension} but got {len(vector)}"
                     )
@@ -76,16 +91,14 @@ class VectorSearchRetrieverTool(FunctionTool, VectorSearchRetrieverToolMixin):
                 query_type=self.query_type,
             )
             return parse_vector_search_response(
-                search_resp,
-                self._index_details,
-                self.text_column,
-                document_class=dict
+                search_resp, self._index_details, self.text_column, document_class=dict
             )
 
         # Create tool metadata
         metadata = ToolMetadata(
             name=self.tool_name or self.index_name,
-            description=self.tool_description or self._get_default_tool_description(self._index_details),
+            description=self.tool_description
+            or self._get_default_tool_description(self._index_details),
             fn_schema=VectorSearchRetrieverToolInput,
             return_direct=self.return_direct,
         )
