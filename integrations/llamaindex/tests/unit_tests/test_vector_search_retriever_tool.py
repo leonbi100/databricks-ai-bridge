@@ -13,6 +13,8 @@ from databricks_llamaindex import VectorSearchRetrieverTool
 from llama_index.core.tools import FunctionTool
 from llama_index.core.embeddings import BaseEmbedding
 from databricks_ai_bridge.vector_search_retriever_tool import VectorSearchRetrieverToolInput
+from llama_index.llms.openai import OpenAI
+from llama_index.core.agent import ReActAgent
 
 
 class FakeEmbeddings(BaseEmbedding):
@@ -104,3 +106,9 @@ def test_vector_search_retriever_tool_description_generation(index_name: str) ->
             "A vector search-based retrieval tool for querying indexed embeddings."
             in vector_search_tool.metadata.description
     )
+
+@pytest.mark.parametrize("index_name", ALL_INDEX_NAMES)
+def test_vector_search_retriever_tool_bind_agent(index_name: str) -> None:
+    vector_search_tool = init_vector_search_tool(index_name)
+    llm = OpenAI()
+    assert ReActAgent.from_tools([vector_search_tool], llm=llm, verbose=True) is not None
