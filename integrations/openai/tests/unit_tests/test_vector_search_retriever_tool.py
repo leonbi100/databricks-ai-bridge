@@ -1,6 +1,6 @@
 import os
 from typing import Any, Dict, List, Optional
-from unittest.mock import MagicMock, patch, Mock
+from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 from databricks_ai_bridge.test_utils.vector_search import (  # noqa: F401
@@ -10,7 +10,12 @@ from databricks_ai_bridge.test_utils.vector_search import (  # noqa: F401
     mock_vs_client,
     mock_workspace_client,
 )
-from openai.types.chat import ChatCompletion, ChatCompletionMessage, ChatCompletionMessageToolCall, ChatCompletionMessageParam
+from openai.types.chat import (
+    ChatCompletion,
+    ChatCompletionMessage,
+    ChatCompletionMessageParam,
+    ChatCompletionMessageToolCall,
+)
 from openai.types.chat.chat_completion import Choice
 from openai.types.chat.chat_completion_message_tool_call_param import Function
 from pydantic import BaseModel, TypeAdapter
