@@ -49,8 +49,7 @@ class VectorSearchRetrieverTool(VectorSearchRetrieverToolMixin):
         None,
         description="The name of the text column to use for the embeddings. "
         "Required for direct-access index or delta-sync index with "
-        "self-managed embeddings. Used for direct access indexes or "
-        "delta-sync indexes with self-managed embeddings",
+        "self-managed embeddings.",
     )
 
     tool: ChatCompletionToolParam = Field(
@@ -94,7 +93,7 @@ class VectorSearchRetrieverTool(VectorSearchRetrieverToolMixin):
     ) -> List[Dict[str, Any]]:
         """
         Execute the VectorSearchIndex tool calls from the ChatCompletions response that correspond to the
-        self.tool VectorSearchRetrieverToolInput and attach the retrieved documents into toll call messages.
+        self.tool VectorSearchRetrieverToolInput and attach the retrieved documents into tool call messages.
 
         Args:
             response: The chat completion response object returned by the OpenAI API.

@@ -1,6 +1,6 @@
 import os
 from typing import Any, Dict, List, Optional
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, patch, Mock
 
 import pytest
 from databricks_ai_bridge.test_utils.vector_search import (  # noqa: F401
@@ -10,10 +10,10 @@ from databricks_ai_bridge.test_utils.vector_search import (  # noqa: F401
     mock_vs_client,
     mock_workspace_client,
 )
-from openai.types.chat import ChatCompletion, ChatCompletionMessage, ChatCompletionMessageToolCall
+from openai.types.chat import ChatCompletion, ChatCompletionMessage, ChatCompletionMessageToolCall, ChatCompletionMessageParam
 from openai.types.chat.chat_completion import Choice
 from openai.types.chat.chat_completion_message_tool_call_param import Function
-from pydantic import BaseModel
+from pydantic import BaseModel, TypeAdapter
 
 from databricks_openai import VectorSearchRetrieverTool
 
@@ -22,7 +22,9 @@ from databricks_openai import VectorSearchRetrieverTool
 def mock_openai_client():
     mock_client = MagicMock()
     mock_client.api_key = "fake_api_key"
-    mock_client.embeddings.create.return_value = {"data": [{"embedding": [0.1, 0.2, 0.3, 0.4]}]}
+    mock_response = Mock()
+    mock_response.data = [Mock(embedding=[0.1, 0.2, 0.3, 0.4])]
+    mock_client.embeddings.create.return_value = mock_response
     with patch("openai.OpenAI", return_value=mock_client):
         yield mock_client
 
@@ -127,7 +129,15 @@ def test_vector_search_retriever_tool_init(
         embedding_model_name=self_managed_embeddings_test.embedding_model_name,
         openai_client=self_managed_embeddings_test.open_ai_client,
     )
-    assert response is not None
+    assert isinstance(response, list)
+
+    # ChatCompletionMessageParam is a union of different ChatCompletionMessage types so we check that each
+    # element in the list is a union member
+    adapter = TypeAdapter(List[ChatCompletionMessageParam])
+    parsed_list = adapter.validate_python(response)
+
+    # parsed_list is now a list of union members
+    assert len(parsed_list) == len(response)
 
 
 @pytest.mark.parametrize("columns", [None, ["id", "text"]])
