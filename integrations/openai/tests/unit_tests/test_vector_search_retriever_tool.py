@@ -21,7 +21,8 @@ from openai.types.chat.chat_completion_message_tool_call_param import Function
 from pydantic import BaseModel, TypeAdapter
 
 from databricks_openai import VectorSearchRetrieverTool
-
+import mlflow
+from mlflow.entities import SpanType
 
 @pytest.fixture(autouse=True)
 def mock_openai_client():
@@ -170,3 +171,41 @@ def test_open_ai_client_from_env(
         openai_client=self_managed_embeddings_test.open_ai_client,
     )
     assert response is not None
+
+@pytest.mark.parametrize("index_name", ALL_INDEX_NAMES)
+@pytest.mark.parametrize("columns", [None, ["id", "text"]])
+@pytest.mark.parametrize("tool_name", [None, "test_tool"])
+@pytest.mark.parametrize("tool_description", [None, "Test tool for vector search"])
+def test_vector_search_retriever_tool_init(
+        index_name: str,
+        columns: Optional[List[str]],
+        tool_name: Optional[str],
+        tool_description: Optional[str],
+) -> None:
+    if index_name == DELTA_SYNC_INDEX:
+        self_managed_embeddings_test = SelfManagedEmbeddingsTest()
+    else:
+        from openai import OpenAI
+
+        self_managed_embeddings_test = SelfManagedEmbeddingsTest(
+            "text", "text-embedding-3-small", OpenAI(api_key="your-api-key")
+        )
+
+    vector_search_tool = init_vector_search_tool(
+        index_name=index_name,
+        columns=columns,
+        tool_name=tool_name,
+        tool_description=tool_description,
+        text_column=self_managed_embeddings_test.text_column,
+    )
+    assert isinstance(vector_search_tool, BaseModel)
+    # simulate call to openai.chat.completions.create
+    chat_completion_resp = get_chat_completion_response(tool_name, index_name)
+    vector_search_tool.execute_calls(
+        chat_completion_resp,
+        embedding_model_name=self_managed_embeddings_test.embedding_model_name,
+        openai_client=self_managed_embeddings_test.open_ai_client,
+    )
+    trace = mlflow.get_last_active_trace()
+    spans = trace.search_spans(name=tool_name or index_name, span_type=SpanType.RETRIEVER)
+    assert len(spans) == 1

@@ -3,16 +3,32 @@ from typing import Any, Dict, List, Optional
 from pydantic import BaseModel, Field
 
 from databricks_ai_bridge.utils.vector_search import IndexDetails
+import mlflow
+from mlflow.entities import SpanType
+from functools import wraps
 
 DEFAULT_TOOL_DESCRIPTION = "A vector search-based retrieval tool for querying indexed embeddings."
 
+def vector_search_retriever_tool_trace(func):
+    """
+    Decorator factory to trace VectorSearchRetrieverTool with the tool name
+    """
+    @wraps(func)
+    def wrapper(self, *args, **kwargs):
+        # Create a new decorator with the instance's name
+        traced_func = mlflow.trace(
+            name=self.tool_name or self.index_name,
+            span_type=SpanType.RETRIEVER
+        )(func)
+        # Call the traced function with self
+        return traced_func(self, *args, **kwargs)
+    return wrapper
 
 class VectorSearchRetrieverToolInput(BaseModel):
     query: str = Field(
         description="The string used to query the index with and identify the most similar "
         "vectors and return the associated documents."
     )
-
 
 class VectorSearchRetrieverToolMixin(BaseModel):
     """
@@ -54,3 +70,4 @@ class VectorSearchRetrieverToolMixin(BaseModel):
                     + f" The queried index uses the source table {source_table}"
                 )
         return DEFAULT_TOOL_DESCRIPTION
+
