@@ -2,6 +2,7 @@ import os
 from typing import Any, Dict, List, Optional
 from unittest.mock import MagicMock, Mock, patch
 
+import mlflow
 import pytest
 from databricks_ai_bridge.test_utils.vector_search import (  # noqa: F401
     ALL_INDEX_NAMES,
@@ -10,6 +11,7 @@ from databricks_ai_bridge.test_utils.vector_search import (  # noqa: F401
     mock_vs_client,
     mock_workspace_client,
 )
+from mlflow.entities import SpanType
 from openai.types.chat import (
     ChatCompletion,
     ChatCompletionMessage,
@@ -21,8 +23,7 @@ from openai.types.chat.chat_completion_message_tool_call_param import Function
 from pydantic import BaseModel, TypeAdapter
 
 from databricks_openai import VectorSearchRetrieverTool
-import mlflow
-from mlflow.entities import SpanType
+
 
 @pytest.fixture(autouse=True)
 def mock_openai_client():
@@ -172,15 +173,16 @@ def test_open_ai_client_from_env(
     )
     assert response is not None
 
+
 @pytest.mark.parametrize("index_name", ALL_INDEX_NAMES)
 @pytest.mark.parametrize("columns", [None, ["id", "text"]])
 @pytest.mark.parametrize("tool_name", [None, "test_tool"])
 @pytest.mark.parametrize("tool_description", [None, "Test tool for vector search"])
 def test_vector_search_retriever_tool_init(
-        index_name: str,
-        columns: Optional[List[str]],
-        tool_name: Optional[str],
-        tool_description: Optional[str],
+    index_name: str,
+    columns: Optional[List[str]],
+    tool_name: Optional[str],
+    tool_description: Optional[str],
 ) -> None:
     if index_name == DELTA_SYNC_INDEX:
         self_managed_embeddings_test = SelfManagedEmbeddingsTest()

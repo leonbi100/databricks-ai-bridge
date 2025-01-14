@@ -1,5 +1,6 @@
 from typing import Any, Dict, List, Optional
 
+import mlflow
 import pytest
 from databricks_ai_bridge.test_utils.vector_search import (  # noqa: F401
     ALL_INDEX_NAMES,
@@ -9,12 +10,12 @@ from databricks_ai_bridge.test_utils.vector_search import (  # noqa: F401
 )
 from langchain_core.embeddings import Embeddings
 from langchain_core.tools import BaseTool
+from mlflow.entities import SpanType
 
 from databricks_langchain import ChatDatabricks, VectorSearchRetrieverTool
 from tests.utils.chat_models import llm, mock_client  # noqa: F401
 from tests.utils.vector_search import EMBEDDING_MODEL
-import mlflow
-from mlflow.entities import SpanType
+
 
 def init_vector_search_tool(
     index_name: str,
@@ -105,10 +106,10 @@ def test_vector_search_retriever_tool_description_generation(index_name: str) ->
         "vectors and return the associated documents."
     )
 
+
 @pytest.mark.parametrize("index_name", ALL_INDEX_NAMES)
 @pytest.mark.parametrize("tool_name", [None, "test_tool"])
-def test_vs_tool_tracing(index_name: str,
-                         tool_name: Optional[str]) -> None:
+def test_vs_tool_tracing(index_name: str, tool_name: Optional[str]) -> None:
     vector_search_tool = init_vector_search_tool(index_name, tool_name=tool_name)
     vector_search_tool._run("Databricks Agent Framework")
     trace = mlflow.get_last_active_trace()
