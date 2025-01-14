@@ -32,7 +32,7 @@ class VectorSearchRetrieverTool(VectorSearchRetrieverToolMixin):
             messages=initial_messages,
             tools=tools,
         )
-        retriever_call_message = dbvs_tool.execute_retriever_calls(response)
+        retriever_call_message = dbvs_tool.execute_calls(response)
 
         ### If needed, execute potential remaining tool calls here ###
         remaining_tool_call_messages = execute_remaining_tool_calls(response)
@@ -84,7 +84,7 @@ class VectorSearchRetrieverTool(VectorSearchRetrieverToolMixin):
         )
         return self
 
-    def execute_retriever_calls(
+    def execute_calls(
         self,
         response: ChatCompletion,
         choice_index: int = 0,

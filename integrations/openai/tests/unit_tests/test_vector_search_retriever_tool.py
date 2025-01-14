@@ -129,7 +129,7 @@ def test_vector_search_retriever_tool_init(
     assert isinstance(vector_search_tool, BaseModel)
     # simulate call to openai.chat.completions.create
     chat_completion_resp = get_chat_completion_response(tool_name, index_name)
-    response = vector_search_tool.execute_retriever_calls(
+    response = vector_search_tool.execute_calls(
         chat_completion_resp,
         embedding_model_name=self_managed_embeddings_test.embedding_model_name,
         openai_client=self_managed_embeddings_test.open_ai_client,
@@ -164,7 +164,7 @@ def test_open_ai_client_from_env(
     assert isinstance(vector_search_tool, BaseModel)
     # simulate call to openai.chat.completions.create
     chat_completion_resp = get_chat_completion_response(tool_name, DIRECT_ACCESS_INDEX)
-    response = vector_search_tool.execute_retriever_calls(
+    response = vector_search_tool.execute_calls(
         chat_completion_resp,
         embedding_model_name=self_managed_embeddings_test.embedding_model_name,
         openai_client=self_managed_embeddings_test.open_ai_client,
