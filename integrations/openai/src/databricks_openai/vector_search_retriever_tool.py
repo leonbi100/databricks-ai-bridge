@@ -1,5 +1,4 @@
-import json
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 from databricks.vector_search.client import VectorSearchIndex
 from databricks_ai_bridge.utils.vector_search import (
@@ -15,7 +14,7 @@ from databricks_ai_bridge.vector_search_retriever_tool import (
 from pydantic import Field, PrivateAttr, model_validator
 
 from openai import OpenAI, pydantic_function_tool
-from openai.types.chat import ChatCompletion, ChatCompletionMessageToolCall, ChatCompletionToolParam
+from openai.types.chat import ChatCompletionToolParam
 
 
 class VectorSearchRetrieverTool(VectorSearchRetrieverToolMixin):
@@ -44,9 +43,10 @@ class VectorSearchRetrieverTool(VectorSearchRetrieverToolMixin):
         "self-managed embeddings.",
     )
     embedding_model_name: Optional[str] = Field(
-        None, description="The name of the embedding model to use for embedding the query text."
-                          "Required for direct-access index or delta-sync index with "
-                          "self-managed embeddings.",
+        None,
+        description="The name of the embedding model to use for embedding the query text."
+        "Required for direct-access index or delta-sync index with "
+        "self-managed embeddings.",
     )
 
     tool: ChatCompletionToolParam = Field(
@@ -68,7 +68,10 @@ class VectorSearchRetrieverTool(VectorSearchRetrieverToolMixin):
             self.columns or [], self.text_column, self._index_details
         )
 
-        if not self._index_details.is_databricks_managed_embeddings() and not self.embedding_model_name:
+        if (
+            not self._index_details.is_databricks_managed_embeddings()
+            and not self.embedding_model_name
+        ):
             raise ValueError(
                 "The embedding model name is required for non-Databricks-managed "
                 "embeddings Vector Search indexes in order to generate embeddings for retrieval queries."

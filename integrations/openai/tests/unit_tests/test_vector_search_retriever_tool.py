@@ -1,3 +1,4 @@
+import json
 import os
 from typing import Any, Dict, List, Optional
 from unittest.mock import MagicMock, Mock, patch
@@ -14,16 +15,13 @@ from databricks_ai_bridge.test_utils.vector_search import (  # noqa: F401
 from openai.types.chat import (
     ChatCompletion,
     ChatCompletionMessage,
-    ChatCompletionMessageParam,
     ChatCompletionMessageToolCall,
 )
 from openai.types.chat.chat_completion import Choice
 from openai.types.chat.chat_completion_message_tool_call_param import Function
-from pydantic import BaseModel, TypeAdapter
+from pydantic import BaseModel
 
 from databricks_openai import VectorSearchRetrieverTool
-
-import json
 
 
 @pytest.fixture(autouse=True)
@@ -138,11 +136,14 @@ def test_vector_search_retriever_tool_init(
     chat_completion_resp = get_chat_completion_response(tool_name, index_name)
     tool_call = chat_completion_resp.choices[0].message.tool_calls[0]
     args = json.loads(tool_call.function.arguments)
-    docs = vector_search_tool.execute(query=args["query"], openai_client=self_managed_embeddings_test.open_ai_client)
+    docs = vector_search_tool.execute(
+        query=args["query"], openai_client=self_managed_embeddings_test.open_ai_client
+    )
     assert docs is not None
     assert len(docs) == len(INPUT_TEXTS)
-    assert sorted([d[0]['page_content'] for d in docs]) == sorted(INPUT_TEXTS)
-    assert all(["id" in d[0]['metadata'] for d in docs])
+    assert sorted([d[0]["page_content"] for d in docs]) == sorted(INPUT_TEXTS)
+    assert all(["id" in d[0]["metadata"] for d in docs])
+
 
 @pytest.mark.parametrize("columns", [None, ["id", "text"]])
 @pytest.mark.parametrize("tool_name", [None, "test_tool"])
@@ -166,8 +167,10 @@ def test_open_ai_client_from_env(
     chat_completion_resp = get_chat_completion_response(tool_name, DIRECT_ACCESS_INDEX)
     tool_call = chat_completion_resp.choices[0].message.tool_calls[0]
     args = json.loads(tool_call.function.arguments)
-    docs = vector_search_tool.execute(query=args["query"], openai_client=self_managed_embeddings_test.open_ai_client)
+    docs = vector_search_tool.execute(
+        query=args["query"], openai_client=self_managed_embeddings_test.open_ai_client
+    )
     assert docs is not None
     assert len(docs) == len(INPUT_TEXTS)
-    assert sorted([d[0]['page_content'] for d in docs]) == sorted(INPUT_TEXTS)
-    assert all(["id" in d[0]['metadata'] for d in docs])
+    assert sorted([d[0]["page_content"] for d in docs]) == sorted(INPUT_TEXTS)
+    assert all(["id" in d[0]["metadata"] for d in docs])
