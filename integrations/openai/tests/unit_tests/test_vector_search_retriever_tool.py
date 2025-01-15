@@ -7,6 +7,7 @@ from databricks_ai_bridge.test_utils.vector_search import (  # noqa: F401
     ALL_INDEX_NAMES,
     DELTA_SYNC_INDEX,
     DIRECT_ACCESS_INDEX,
+    INPUT_TEXTS,
     mock_vs_client,
     mock_workspace_client,
 )
@@ -21,6 +22,8 @@ from openai.types.chat.chat_completion_message_tool_call_param import Function
 from pydantic import BaseModel, TypeAdapter
 
 from databricks_openai import VectorSearchRetrieverTool
+
+import json
 
 
 @pytest.fixture(autouse=True)
@@ -76,6 +79,7 @@ def init_vector_search_tool(
     tool_name: Optional[str] = None,
     tool_description: Optional[str] = None,
     text_column: Optional[str] = None,
+    embedding_model_name: Optional[str] = None,
 ) -> VectorSearchRetrieverTool:
     kwargs: Dict[str, Any] = {
         "index_name": index_name,
@@ -83,11 +87,13 @@ def init_vector_search_tool(
         "tool_name": tool_name,
         "tool_description": tool_description,
         "text_column": text_column,
+        "embedding_model_name": embedding_model_name,
     }
     if index_name != DELTA_SYNC_INDEX:
         kwargs.update(
             {
                 "text_column": "text",
+                "embedding_model_name": "text-embedding-3-small",
             }
         )
     return VectorSearchRetrieverTool(**kwargs)  # type: ignore[arg-type]
@@ -125,25 +131,18 @@ def test_vector_search_retriever_tool_init(
         tool_name=tool_name,
         tool_description=tool_description,
         text_column=self_managed_embeddings_test.text_column,
+        embedding_model_name=self_managed_embeddings_test.embedding_model_name,
     )
     assert isinstance(vector_search_tool, BaseModel)
     # simulate call to openai.chat.completions.create
     chat_completion_resp = get_chat_completion_response(tool_name, index_name)
-    response = vector_search_tool.execute_calls(
-        chat_completion_resp,
-        embedding_model_name=self_managed_embeddings_test.embedding_model_name,
-        openai_client=self_managed_embeddings_test.open_ai_client,
-    )
-    assert isinstance(response, list)
-
-    # ChatCompletionMessageParam is a union of different ChatCompletionMessage types so we check that each
-    # element in the list is a union member
-    adapter = TypeAdapter(List[ChatCompletionMessageParam])
-    parsed_list = adapter.validate_python(response)
-
-    # parsed_list is now a list of union members
-    assert len(parsed_list) == len(response)
-
+    tool_call = chat_completion_resp.choices[0].message.tool_calls[0]
+    args = json.loads(tool_call.function.arguments)
+    docs = vector_search_tool.execute(query=args["query"], openai_client=self_managed_embeddings_test.open_ai_client)
+    assert docs is not None
+    assert len(docs) == len(INPUT_TEXTS)
+    assert sorted([d[0]['page_content'] for d in docs]) == sorted(INPUT_TEXTS)
+    assert all(["id" in d[0]['metadata'] for d in docs])
 
 @pytest.mark.parametrize("columns", [None, ["id", "text"]])
 @pytest.mark.parametrize("tool_name", [None, "test_tool"])
@@ -160,13 +159,15 @@ def test_open_ai_client_from_env(
         tool_name=tool_name,
         tool_description=tool_description,
         text_column=self_managed_embeddings_test.text_column,
+        embedding_model_name=self_managed_embeddings_test.embedding_model_name,
     )
     assert isinstance(vector_search_tool, BaseModel)
     # simulate call to openai.chat.completions.create
     chat_completion_resp = get_chat_completion_response(tool_name, DIRECT_ACCESS_INDEX)
-    response = vector_search_tool.execute_calls(
-        chat_completion_resp,
-        embedding_model_name=self_managed_embeddings_test.embedding_model_name,
-        openai_client=self_managed_embeddings_test.open_ai_client,
-    )
-    assert response is not None
+    tool_call = chat_completion_resp.choices[0].message.tool_calls[0]
+    args = json.loads(tool_call.function.arguments)
+    docs = vector_search_tool.execute(query=args["query"], openai_client=self_managed_embeddings_test.open_ai_client)
+    assert docs is not None
+    assert len(docs) == len(INPUT_TEXTS)
+    assert sorted([d[0]['page_content'] for d in docs]) == sorted(INPUT_TEXTS)
+    assert all(["id" in d[0]['metadata'] for d in docs])

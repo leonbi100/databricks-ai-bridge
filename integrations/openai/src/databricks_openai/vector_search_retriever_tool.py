@@ -32,17 +32,9 @@ class VectorSearchRetrieverTool(VectorSearchRetrieverToolMixin):
             messages=initial_messages,
             tools=tools,
         )
-        retriever_call_message = dbvs_tool.execute_calls(response)
-
-        ### If needed, execute potential remaining tool calls here ###
-        remaining_tool_call_messages = execute_remaining_tool_calls(response)
-
-        final_response = openai.chat.completions.create(
-            model="gpt-4o",
-            messages=initial_messages + retriever_call_message + remaining_tool_call_messages,
-            tools=tools,
-        )
-        final_response.choices[0].message.content
+        tool_call = chat_completion_resp.choices[0].message.tool_calls[0]
+        args = json.loads(tool_call.function.arguments)
+        retriever_resp = vector_search_tool.execute(query=args["query"])
     """
 
     text_column: Optional[str] = Field(
@@ -50,6 +42,11 @@ class VectorSearchRetrieverTool(VectorSearchRetrieverToolMixin):
         description="The name of the text column to use for the embeddings. "
         "Required for direct-access index or delta-sync index with "
         "self-managed embeddings.",
+    )
+    embedding_model_name: Optional[str] = Field(
+        None, description="The name of the embedding model to use for embedding the query text."
+                          "Required for direct-access index or delta-sync index with "
+                          "self-managed embeddings.",
     )
 
     tool: ChatCompletionToolParam = Field(
@@ -71,6 +68,12 @@ class VectorSearchRetrieverTool(VectorSearchRetrieverToolMixin):
             self.columns or [], self.text_column, self._index_details
         )
 
+        if not self._index_details.is_databricks_managed_embeddings() and not self.embedding_model_name:
+            raise ValueError(
+                "The embedding model name is required for non-Databricks-managed "
+                "embeddings Vector Search indexes in order to generate embeddings for retrieval queries."
+            )
+
         # OpenAI tool names must match the pattern '^[a-zA-Z0-9_-]+$'."
         # The '.' from the index name are not allowed
         def rewrite_index_name(index_name: str):
@@ -84,44 +87,27 @@ class VectorSearchRetrieverTool(VectorSearchRetrieverToolMixin):
         )
         return self
 
-    def execute_calls(
+    def execute(
         self,
-        response: ChatCompletion,
-        choice_index: int = 0,
-        embedding_model_name: str = None,
+        query: str,
         openai_client: OpenAI = None,
-    ) -> List[Dict[str, Any]]:
+    ) -> List[Tuple[Dict, float]]:
         """
         Execute the VectorSearchIndex tool calls from the ChatCompletions response that correspond to the
         self.tool VectorSearchRetrieverToolInput and attach the retrieved documents into tool call messages.
 
         Args:
-            response: The chat completion response object returned by the OpenAI API.
-            choice_index: The index of the choice to process. Defaults to 0. Note that multiple
-                choices are not supported yet.
-            embedding_model_name: The name of the embedding model to use for embedding the query text.
-                                  Required for direct access indexes or delta-sync indexes with self-managed embeddings.
+            query: The query text to use for the retrieval.
             openai_client: The OpenAI client object used to generate embeddings for retrieval queries. If not provided,
                            the default OpenAI client in the current environment will be used.
 
         Returns:
-            A list of messages containing the assistant message and the retriever call results
-            that correspond to the self.tool VectorSearchRetrieverToolInput.
+            A list of documents with their corresponding similarity scores.
         """
 
-        def get_query_text_vector(
-            tool_call: ChatCompletionMessageToolCall,
-        ) -> Tuple[Optional[str], Optional[List[float]]]:
-            query = json.loads(tool_call.function.arguments)["query"]
-            if self._index_details.is_databricks_managed_embeddings():
-                if embedding_model_name:
-                    raise ValueError(
-                        f"The index '{self._index_details.name}' uses Databricks-managed embeddings. "
-                        "Do not pass the `embedding_model_name` parameter when executing retriever calls."
-                    )
-                return query, None
-
-            # For non-Databricks-managed embeddings
+        if self._index_details.is_databricks_managed_embeddings():
+            query_text, query_vector = query, None
+        else:  # For non-Databricks-managed embeddings
             from openai import OpenAI
 
             oai_client = openai_client or OpenAI()
@@ -129,15 +115,10 @@ class VectorSearchRetrieverTool(VectorSearchRetrieverToolMixin):
                 raise ValueError(
                     "OpenAI API key is required to generate embeddings for retrieval queries."
                 )
-            if not embedding_model_name:
-                raise ValueError(
-                    "The embedding model name is required for non-Databricks-managed "
-                    "embeddings Vector Search indexes in order to generate embeddings for retrieval queries."
-                )
 
-            text = query if self.query_type and self.query_type.upper() == "HYBRID" else None
-            vector = (
-                oai_client.embeddings.create(input=query, model=embedding_model_name)
+            query_text = query if self.query_type and self.query_type.upper() == "HYBRID" else None
+            query_vector = (
+                oai_client.embeddings.create(input=query, model=self.embedding_model_name)
                 .data[0]
                 .embedding
             )
@@ -145,54 +126,23 @@ class VectorSearchRetrieverTool(VectorSearchRetrieverToolMixin):
                 index_embedding_dimension := self._index_details.embedding_vector_column.get(
                     "embedding_dimension"
                 )
-            ) and len(vector) != index_embedding_dimension:
+            ) and len(query_vector) != index_embedding_dimension:
                 raise ValueError(
                     f"Expected embedding dimension {index_embedding_dimension} but got {len(vector)}"
                 )
-            return text, vector
 
-        def is_tool_call_for_index(tool_call: ChatCompletionMessageToolCall) -> bool:
-            tool_call_arguments: Set[str] = set(json.loads(tool_call.function.arguments).keys())
-            vs_index_arguments: Set[str] = set(
-                self.tool["function"]["parameters"]["properties"].keys()
-            )
-            return (
-                tool_call.function.name == self.tool["function"]["name"]
-                and tool_call_arguments == vs_index_arguments
-            )
-
-        if type(response) is not ChatCompletion:
-            raise ValueError("response must be an instance of ChatCompletion")
-        message = response.choices[choice_index].message
-        llm_tool_calls = message.tool_calls
-        function_calls = []
-        if llm_tool_calls:
-            for llm_tool_call in llm_tool_calls:
-                # Only process tool calls that correspond to the self.tool VectorSearchRetrieverToolInput
-                if not is_tool_call_for_index(llm_tool_call):
-                    continue
-
-                query_text, query_vector = get_query_text_vector(llm_tool_call)
-                search_resp = self._index.similarity_search(
-                    columns=self.columns,
-                    query_text=query_text,
-                    query_vector=query_vector,
-                    filters=self.filters,
-                    num_results=self.num_results,
-                    query_type=self.query_type,
-                )
-                docs_with_score: List[Tuple[Dict, float]] = parse_vector_search_response(
-                    search_resp=search_resp,
-                    index_details=self._index_details,
-                    text_column=self.text_column,
-                    document_class=dict,
-                )
-
-                function_call_result_message = {
-                    "role": "tool",
-                    "content": json.dumps({"content": docs_with_score}),
-                    "tool_call_id": llm_tool_call.id,
-                }
-                function_calls.append(function_call_result_message)
-        assistant_message = message.to_dict()
-        return [assistant_message, *function_calls]
+        search_resp = self._index.similarity_search(
+            columns=self.columns,
+            query_text=query_text,
+            query_vector=query_vector,
+            filters=self.filters,
+            num_results=self.num_results,
+            query_type=self.query_type,
+        )
+        docs_with_score: List[Tuple[Dict, float]] = parse_vector_search_response(
+            search_resp=search_resp,
+            index_details=self._index_details,
+            text_column=self.text_column,
+            document_class=dict,
+        )
+        return docs_with_score
