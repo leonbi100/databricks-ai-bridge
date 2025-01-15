@@ -31,7 +31,7 @@ class VectorSearchRetrieverTool(VectorSearchRetrieverToolMixin):
             messages=initial_messages,
             tools=tools,
         )
-        tool_call = chat_completion_resp.choices[0].message.tool_calls[0]
+        tool_call = response.choices[0].message.tool_calls[0]
         args = json.loads(tool_call.function.arguments)
         retriever_resp = vector_search_tool.execute(query=args["query"])
     """
