@@ -80,7 +80,7 @@ class VectorSearchRetrieverTool(VectorSearchRetrieverToolMixin):
         # OpenAI tool names must match the pattern '^[a-zA-Z0-9_-]+$'."
         # The '.' from the index name are not allowed
         def rewrite_index_name(index_name: str):
-            return index_name.replace(".", "_")
+            return index_name.replace(".", "__")
 
         self.tool = pydantic_function_tool(
             VectorSearchRetrieverToolInput,
