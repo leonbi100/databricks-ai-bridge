@@ -55,9 +55,7 @@ def get_chat_completion_response(tool_name: str, index_name: str):
                             function=Function(
                                 arguments='{"query":"Databricks Agent Framework"}',
                                 name=tool_name
-                                or index_name.split(".")[
-                                    -1
-                                ],  # see rewrite_index_name() in VectorSearchRetrieverTool
+                                or index_name.replace(".", "__"),  # see get_tool_name() in VectorSearchRetrieverTool
                             ),
                             type="function",
                         )
@@ -174,3 +172,48 @@ def test_open_ai_client_from_env(
     assert len(docs) == len(INPUT_TEXTS)
     assert sorted([d[0]["page_content"] for d in docs]) == sorted(INPUT_TEXTS)
     assert all(["id" in d[0]["metadata"] for d in docs])
+
+
+@pytest.mark.parametrize("index_name", ALL_INDEX_NAMES)
+def test_vector_search_retriever_long_idex_name_rewrite(
+        index_name: str,
+) -> None:
+    if index_name == DELTA_SYNC_INDEX:
+        self_managed_embeddings_test = SelfManagedEmbeddingsTest()
+    else:
+        from openai import OpenAI
+
+        self_managed_embeddings_test = SelfManagedEmbeddingsTest(
+            "text", "text-embedding-3-small", OpenAI(api_key="your-api-key")
+        )
+
+    vector_search_tool = init_vector_search_tool(
+        index_name=index_name,
+        text_column=self_managed_embeddings_test.text_column,
+        embedding_model_name=self_managed_embeddings_test.embedding_model_name,
+    )
+    assert vector_search_tool.tool["function"]["name"] == index_name.replace(".", "__")
+
+@pytest.mark.parametrize("index_name", ALL_INDEX_NAMES)
+@pytest.mark.parametrize("tool_name", [None, "really_really_really_long_tool_name_that_should_be_truncated_to_64_chars"])
+def test_vector_search_retriever_long_tool_name(
+        index_name: str,
+        tool_name: Optional[str],
+) -> None:
+    if index_name == DELTA_SYNC_INDEX:
+        self_managed_embeddings_test = SelfManagedEmbeddingsTest()
+    else:
+        from openai import OpenAI
+
+        self_managed_embeddings_test = SelfManagedEmbeddingsTest(
+            "text", "text-embedding-3-small", OpenAI(api_key="your-api-key")
+        )
+
+    vector_search_tool = init_vector_search_tool(
+        index_name=index_name,
+        tool_name=tool_name,
+        text_column=self_managed_embeddings_test.text_column,
+        embedding_model_name=self_managed_embeddings_test.embedding_model_name,
+    )
+    assert len(vector_search_tool.tool["function"]["name"]) <= 64
+

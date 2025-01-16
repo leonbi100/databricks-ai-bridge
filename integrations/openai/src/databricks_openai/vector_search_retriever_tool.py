@@ -15,7 +15,10 @@ from pydantic import Field, PrivateAttr, model_validator
 
 from openai import OpenAI, pydantic_function_tool
 from openai.types.chat import ChatCompletionToolParam
+import logging
 
+
+_logger = logging.getLogger(__name__)
 
 class VectorSearchRetrieverTool(VectorSearchRetrieverToolMixin):
     """
@@ -61,6 +64,11 @@ class VectorSearchRetrieverTool(VectorSearchRetrieverToolMixin):
             VectorSearchClient,  # import here so we can mock in tests
         )
 
+        splits = self.index_name.split(".")
+        if len(splits) != 3:
+            raise ValueError(
+                f"Index name {self.index_name} is not in the expected format 'catalog.schema.index'."
+            )
         self._index = VectorSearchClient().get_index(index_name=self.index_name)
         self._index_details = IndexDetails(self._index)
         self.text_column = validate_and_get_text_column(self.text_column, self._index_details)
@@ -79,14 +87,19 @@ class VectorSearchRetrieverTool(VectorSearchRetrieverToolMixin):
 
         # OpenAI tool names must match the pattern '^[a-zA-Z0-9_-]+$'."
         # The '.' from the index name are not allowed
-        def rewrite_index_name(index_name: str):
-            return index_name.replace(".", "__")
+        def get_tool_name():
+            tool_name = self.tool_name or self.index_name.replace(".", "__")
+            if len(tool_name) > 64:
+                _logger.warning(
+                    f"Function name {tool_name} is too long, truncating to 64 characters {tool_name[-64:]}."
+                )
+                return tool_name[-64:]
+            return tool_name
 
         self.tool = pydantic_function_tool(
             VectorSearchRetrieverToolInput,
-            name=self.tool_name or rewrite_index_name(self.index_name),
-            description=self.tool_description
-            or self._get_default_tool_description(self._index_details),
+            name=get_tool_name(),
+            description=self.tool_description or self._get_default_tool_description(self._index_details),
         )
         return self
 
