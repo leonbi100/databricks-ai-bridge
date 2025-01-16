@@ -1,3 +1,4 @@
+import logging
 from typing import Dict, List, Optional, Tuple
 
 from databricks.vector_search.client import VectorSearchIndex
@@ -15,10 +16,9 @@ from pydantic import Field, PrivateAttr, model_validator
 
 from openai import OpenAI, pydantic_function_tool
 from openai.types.chat import ChatCompletionToolParam
-import logging
-
 
 _logger = logging.getLogger(__name__)
+
 
 class VectorSearchRetrieverTool(VectorSearchRetrieverToolMixin):
     """
@@ -99,7 +99,8 @@ class VectorSearchRetrieverTool(VectorSearchRetrieverToolMixin):
         self.tool = pydantic_function_tool(
             VectorSearchRetrieverToolInput,
             name=get_tool_name(),
-            description=self.tool_description or self._get_default_tool_description(self._index_details),
+            description=self.tool_description
+            or self._get_default_tool_description(self._index_details),
         )
         return self
 

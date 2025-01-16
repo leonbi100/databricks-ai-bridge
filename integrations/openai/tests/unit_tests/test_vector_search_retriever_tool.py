@@ -55,7 +55,9 @@ def get_chat_completion_response(tool_name: str, index_name: str):
                             function=Function(
                                 arguments='{"query":"Databricks Agent Framework"}',
                                 name=tool_name
-                                or index_name.replace(".", "__"),  # see get_tool_name() in VectorSearchRetrieverTool
+                                or index_name.replace(
+                                    ".", "__"
+                                ),  # see get_tool_name() in VectorSearchRetrieverTool
                             ),
                             type="function",
                         )
@@ -176,7 +178,7 @@ def test_open_ai_client_from_env(
 
 @pytest.mark.parametrize("index_name", ALL_INDEX_NAMES)
 def test_vector_search_retriever_long_idex_name_rewrite(
-        index_name: str,
+    index_name: str,
 ) -> None:
     if index_name == DELTA_SYNC_INDEX:
         self_managed_embeddings_test = SelfManagedEmbeddingsTest()
@@ -194,11 +196,14 @@ def test_vector_search_retriever_long_idex_name_rewrite(
     )
     assert vector_search_tool.tool["function"]["name"] == index_name.replace(".", "__")
 
+
 @pytest.mark.parametrize("index_name", ALL_INDEX_NAMES)
-@pytest.mark.parametrize("tool_name", [None, "really_really_really_long_tool_name_that_should_be_truncated_to_64_chars"])
+@pytest.mark.parametrize(
+    "tool_name", [None, "really_really_really_long_tool_name_that_should_be_truncated_to_64_chars"]
+)
 def test_vector_search_retriever_long_tool_name(
-        index_name: str,
-        tool_name: Optional[str],
+    index_name: str,
+    tool_name: Optional[str],
 ) -> None:
     if index_name == DELTA_SYNC_INDEX:
         self_managed_embeddings_test = SelfManagedEmbeddingsTest()
@@ -216,4 +221,3 @@ def test_vector_search_retriever_long_tool_name(
         embedding_model_name=self_managed_embeddings_test.embedding_model_name,
     )
     assert len(vector_search_tool.tool["function"]["name"]) <= 64
-
