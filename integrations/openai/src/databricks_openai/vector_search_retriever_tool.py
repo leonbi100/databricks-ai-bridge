@@ -11,6 +11,7 @@ from databricks_ai_bridge.utils.vector_search import (
 from databricks_ai_bridge.vector_search_retriever_tool import (
     VectorSearchRetrieverToolInput,
     VectorSearchRetrieverToolMixin,
+    vector_search_retriever_tool_trace,
 )
 from pydantic import Field, PrivateAttr, model_validator
 
@@ -126,6 +127,7 @@ class VectorSearchRetrieverTool(VectorSearchRetrieverToolMixin):
         )
         return self
 
+    @vector_search_retriever_tool_trace
     def execute(
         self,
         query: str,

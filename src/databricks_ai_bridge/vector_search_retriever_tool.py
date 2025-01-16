@@ -1,10 +1,30 @@
+from functools import wraps
 from typing import Any, Dict, List, Optional
 
+import mlflow
+from mlflow.entities import SpanType
 from pydantic import BaseModel, Field
 
 from databricks_ai_bridge.utils.vector_search import IndexDetails
 
 DEFAULT_TOOL_DESCRIPTION = "A vector search-based retrieval tool for querying indexed embeddings."
+
+
+def vector_search_retriever_tool_trace(func):
+    """
+    Decorator factory to trace VectorSearchRetrieverTool with the tool name
+    """
+
+    @wraps(func)
+    def wrapper(self, *args, **kwargs):
+        # Create a new decorator with the instance's name
+        traced_func = mlflow.trace(
+            name=self.tool_name or self.index_name, span_type=SpanType.RETRIEVER
+        )(func)
+        # Call the traced function with self
+        return traced_func(self, *args, **kwargs)
+
+    return wrapper
 
 
 class VectorSearchRetrieverToolInput(BaseModel):

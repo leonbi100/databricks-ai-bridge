@@ -3,6 +3,7 @@ import os
 from typing import Any, Dict, List, Optional
 from unittest.mock import MagicMock, Mock, patch
 
+import mlflow
 import pytest
 from databricks_ai_bridge.test_utils.vector_search import (  # noqa: F401
     ALL_INDEX_NAMES,
@@ -12,6 +13,7 @@ from databricks_ai_bridge.test_utils.vector_search import (  # noqa: F401
     mock_vs_client,
     mock_workspace_client,
 )
+from mlflow.entities import SpanType
 from openai.types.chat import (
     ChatCompletion,
     ChatCompletionMessage,
@@ -141,9 +143,17 @@ def test_vector_search_retriever_tool_init(
     )
     assert docs is not None
     assert len(docs) == len(INPUT_TEXTS)
-    assert sorted([d[0]["page_content"] for d in docs]) == sorted(INPUT_TEXTS)
-    assert all(["id" in d[0]["metadata"] for d in docs])
+    assert sorted([d["page_content"] for d in docs]) == sorted(INPUT_TEXTS)
+    assert all(["id" in d["metadata"] for d in docs])
 
+    # Ensure tracing works properly
+    trace = mlflow.get_last_active_trace()
+    spans = trace.search_spans(name=tool_name or index_name, span_type=SpanType.RETRIEVER)
+    assert len(spans) == 1
+    inputs = json.loads(trace.to_dict()["data"]["spans"][0]["attributes"]["mlflow.spanInputs"])
+    assert inputs["query"] == "Databricks Agent Framework"
+    outputs = json.loads(trace.to_dict()["data"]["spans"][0]["attributes"]["mlflow.spanOutputs"])
+    assert [d["page_content"] in INPUT_TEXTS for d in outputs]
 
 @pytest.mark.parametrize("columns", [None, ["id", "text"]])
 @pytest.mark.parametrize("tool_name", [None, "test_tool"])
@@ -172,8 +182,8 @@ def test_open_ai_client_from_env(
     )
     assert docs is not None
     assert len(docs) == len(INPUT_TEXTS)
-    assert sorted([d[0]["page_content"] for d in docs]) == sorted(INPUT_TEXTS)
-    assert all(["id" in d[0]["metadata"] for d in docs])
+    assert sorted([d["page_content"] for d in docs]) == sorted(INPUT_TEXTS)
+    assert all(["id" in d["metadata"] for d in docs])
 
 
 @pytest.mark.parametrize("index_name", ALL_INDEX_NAMES)
