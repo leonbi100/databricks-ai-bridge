@@ -114,7 +114,7 @@ class VectorSearchRetrieverTool(VectorSearchRetrieverToolMixin):
             tool_name = self.tool_name or self.index_name.replace(".", "__")
             if len(tool_name) > 64:
                 _logger.warning(
-                    f"Function name {tool_name} is too long, truncating to 64 characters {tool_name[-64:]}."
+                    f"Tool name {tool_name} is too long, truncating to 64 characters {tool_name[-64:]}."
                 )
                 return tool_name[-64:]
             return tool_name
