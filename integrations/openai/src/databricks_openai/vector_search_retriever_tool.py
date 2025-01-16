@@ -27,16 +27,36 @@ class VectorSearchRetrieverTool(VectorSearchRetrieverToolMixin):
     for tool calling using the OpenAI SDK.
 
     Example:
-        dbvs_tool = VectorSearchRetrieverTool("index_name")
-        tools = [dbvs_tool.tool, ...]
-        response = openai.chat.completions.create(
-            model="gpt-4o",
-            messages=initial_messages,
-            tools=tools,
+        messages = [
+                {"role": "system", "content": "You are a helpful assistant."},
+                {
+                    "role": "user",
+                    "content": "Using the Databricks documentation, answer what is Spark?"
+                }
+            ]
+
+        dbvs_tool = VectorSearchRetrieverTool(index_name=index_name, text_column="text", embedding_model_name=embedding_endpoint)
+        tools = [dbvs_tool.tool]
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=messages,
+            tools=tools
         )
         tool_call = response.choices[0].message.tool_calls[0]
         args = json.loads(tool_call.function.arguments)
-        retriever_resp = vector_search_tool.execute(query=args["query"])
+        result = dbvs_tool.execute(query=args["query"], openai_client=client)
+        messages.append(response.choices[0].message)
+        messages.append({
+            "role": "tool",
+            "tool_call_id": tool_call.id,
+            "content": json.dumps(result)
+        })
+        response_2 = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=messages,
+            tools=tools
+        )
+        response_2.choices[0].message.content
     """
 
     text_column: Optional[str] = Field(
