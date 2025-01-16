@@ -130,7 +130,7 @@ class VectorSearchRetrieverTool(VectorSearchRetrieverToolMixin):
         self,
         query: str,
         openai_client: OpenAI = None,
-    ) -> List[Tuple[Dict, float]]:
+    ) -> List[Dict]:
         """
         Execute the VectorSearchIndex tool calls from the ChatCompletions response that correspond to the
         self.tool VectorSearchRetrieverToolInput and attach the retrieved documents into tool call messages.
@@ -141,7 +141,7 @@ class VectorSearchRetrieverTool(VectorSearchRetrieverToolMixin):
                            the default OpenAI client in the current environment will be used.
 
         Returns:
-            A list of documents with their corresponding similarity scores.
+            A list of documents
         """
 
         if self._index_details.is_databricks_managed_embeddings():
