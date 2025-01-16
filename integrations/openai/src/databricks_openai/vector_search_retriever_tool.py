@@ -182,4 +182,4 @@ class VectorSearchRetrieverTool(VectorSearchRetrieverToolMixin):
             text_column=self.text_column,
             document_class=dict,
         )
-        return docs_with_score
+        return [doc for doc, _ in docs_with_score]
