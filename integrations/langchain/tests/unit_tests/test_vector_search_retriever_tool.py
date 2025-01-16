@@ -1,3 +1,4 @@
+import json
 from typing import Any, Dict, List, Optional
 
 import mlflow
@@ -16,7 +17,6 @@ from mlflow.entities import SpanType
 from databricks_langchain import ChatDatabricks, VectorSearchRetrieverTool
 from tests.utils.chat_models import llm, mock_client  # noqa: F401
 from tests.utils.vector_search import EMBEDDING_MODEL
-import json
 
 
 def init_vector_search_tool(
