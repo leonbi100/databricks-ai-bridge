@@ -155,6 +155,7 @@ def test_vector_search_retriever_tool_init(
     outputs = json.loads(trace.to_dict()["data"]["spans"][0]["attributes"]["mlflow.spanOutputs"])
     assert [d["page_content"] in INPUT_TEXTS for d in outputs]
 
+
 @pytest.mark.parametrize("columns", [None, ["id", "text"]])
 @pytest.mark.parametrize("tool_name", [None, "test_tool"])
 @pytest.mark.parametrize("tool_description", [None, "Test tool for vector search"])
